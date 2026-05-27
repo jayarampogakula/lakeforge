@@ -1,0 +1,24 @@
+{
+  "source_table": "customer_staging",
+  "target_table": "customer_dimension",
+  "catalog": "silver",
+  "schema": "dimensions",
+  "key_columns": [
+    "customer_id"
+  ],
+  "tracked_columns": [
+    "customer_name",
+    "email",
+    "phone",
+    "address",
+    "city",
+    "state",
+    "zip_code",
+    "customer_segment"
+  ],
+  "effective_date_col": "effective_start_date",
+  "end_date_col": "effective_end_date",
+  "current_flag_col": "is_current",
+  "hash_col": "record_hash",
+  "create_if_not_exists": true
+}

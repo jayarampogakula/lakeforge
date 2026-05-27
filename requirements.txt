@@ -1,0 +1,12 @@
+# LakeForge Phase 1 Dependencies
+
+# Core Spark and Delta
+pyspark>=3.3.0
+delta-spark>=2.3.0
+
+# Data Processing
+pandas>=1.5.0
+openpyxl>=3.0.0  # Excel support
+chardet>=5.0.0   # Encoding detection
+
+# Note: JSON support is built into Python, no external dependency needed

@@ -81,8 +81,8 @@ logger.info("Step 3: Running Data Quality checks")
 # Create DQ engine
 dq_engine = create_dq_engine(spark)
 
-# Load DQ rules from config
-dq_config_path = "/Workspace/Users/jayarampogakula@gmail.com/lakeforge/configs/dq/sample_dq_rules.yaml"
+# Load DQ rules from JSON config
+dq_config_path = "/Workspace/Users/jayarampogakula@gmail.com/lakeforge/configs/dq/sample_dq_rules.json"
 # dq_config = load_dq_config(dq_config_path)
 
 # Define DQ rules manually for this example

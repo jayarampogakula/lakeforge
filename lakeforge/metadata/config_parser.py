@@ -1,11 +1,11 @@
 """
 LakeForge Config Parser Module
-Handles YAML configuration parsing for ingestion, DQ rules, and pipeline configs.
+Handles JSON configuration parsing for ingestion, DQ rules, and pipeline configs.
 """
-import yaml
+import json
 from typing import Dict, List, Any, Optional
 from pathlib import Path
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, asdict
 
 
 @dataclass
@@ -39,6 +39,15 @@ class IngestionConfig:
     # Metadata
     tags: Dict[str, str] = field(default_factory=dict)
     description: Optional[str] = None
+    
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert config to dictionary."""
+        return asdict(self)
+    
+    def to_json(self, file_path: str, indent: int = 2):
+        """Save config to JSON file."""
+        with open(file_path, 'w') as f:
+            json.dump(self.to_dict(), f, indent=indent)
 
 
 @dataclass
@@ -71,40 +80,57 @@ class DQConfig:
     rules: List[DQRule]
     quarantine_table: Optional[str] = None
     enable_scorecard: bool = True
+    
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert config to dictionary."""
+        config_dict = {
+            "table_name": self.table_name,
+            "catalog": self.catalog,
+            "schema": self.schema,
+            "quarantine_table": self.quarantine_table,
+            "enable_scorecard": self.enable_scorecard,
+            "rules": [asdict(rule) for rule in self.rules]
+        }
+        return config_dict
+    
+    def to_json(self, file_path: str, indent: int = 2):
+        """Save config to JSON file."""
+        with open(file_path, 'w') as f:
+            json.dump(self.to_dict(), f, indent=indent)
 
 
 class ConfigParser:
-    """Parser for LakeForge YAML configurations."""
+    """Parser for LakeForge JSON configurations."""
     
     @staticmethod
     def parse_ingestion_config(config_path: str) -> IngestionConfig:
         """
-        Parse ingestion configuration from YAML file.
+        Parse ingestion configuration from JSON file.
         
         Args:
-            config_path: Path to YAML config file
+            config_path: Path to JSON config file
             
         Returns:
             IngestionConfig object
         """
         with open(config_path, 'r') as f:
-            config_dict = yaml.safe_load(f)
+            config_dict = json.load(f)
         
         return IngestionConfig(**config_dict)
     
     @staticmethod
     def parse_dq_config(config_path: str) -> DQConfig:
         """
-        Parse data quality configuration from YAML file.
+        Parse data quality configuration from JSON file.
         
         Args:
-            config_path: Path to YAML config file
+            config_path: Path to JSON config file
             
         Returns:
             DQConfig object
         """
         with open(config_path, 'r') as f:
-            config_dict = yaml.safe_load(f)
+            config_dict = json.load(f)
         
         # Parse rules
         rules = []
@@ -115,18 +141,18 @@ class ConfigParser:
         return DQConfig(**config_dict)
     
     @staticmethod
-    def parse_yaml(config_path: str) -> Dict[str, Any]:
+    def parse_json(config_path: str) -> Dict[str, Any]:
         """
-        Parse generic YAML configuration file.
+        Parse generic JSON configuration file.
         
         Args:
-            config_path: Path to YAML config file
+            config_path: Path to JSON config file
             
         Returns:
             Dictionary containing configuration
         """
         with open(config_path, 'r') as f:
-            return yaml.safe_load(f)
+            return json.load(f)
     
     @staticmethod
     def validate_ingestion_config(config: IngestionConfig) -> List[str]:
@@ -209,7 +235,7 @@ def load_ingestion_config(config_path: str) -> IngestionConfig:
     Load and validate ingestion configuration.
     
     Args:
-        config_path: Path to YAML config file
+        config_path: Path to JSON config file
         
     Returns:
         Validated IngestionConfig object
@@ -231,7 +257,7 @@ def load_dq_config(config_path: str) -> DQConfig:
     Load and validate DQ configuration.
     
     Args:
-        config_path: Path to YAML config file
+        config_path: Path to JSON config file
         
     Returns:
         Validated DQConfig object

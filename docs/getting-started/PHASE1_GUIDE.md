@@ -9,7 +9,7 @@ Phase 1 of LakeForge implements the core foundational components for a productio
 3. **Bronze Writer** - Delta Lake writer with audit columns and file tracking
 4. **DQ Engine** - Comprehensive data quality validation framework
 5. **SCD Type 2** - Slowly Changing Dimension Type 2 implementation
-6. **YAML Config** - Configuration-driven pipeline execution
+6. **JSON Config** - Configuration-driven pipeline execution (NO external dependencies!)
 7. **Logging** - Structured observability and metrics tracking
 
 ---
@@ -272,9 +272,9 @@ as_of = scd_handler.get_records_as_of_date(
 
 ---
 
-### 6. YAML Config (`lakeforge/metadata/config_parser.py`)
+### 6. JSON Config (`lakeforge/metadata/config_parser.py`)
 
-**Purpose**: Enable configuration-driven pipeline execution with validation.
+**Purpose**: Enable configuration-driven pipeline execution with validation. Uses Python's built-in JSON module - NO external dependencies!
 
 **Key Features**:
 - Ingestion configuration parsing
@@ -282,32 +282,44 @@ as_of = scd_handler.get_records_as_of_date(
 - Dataclass-based strongly-typed configs
 - Configuration validation with error reporting
 - Support for metadata, tags, and descriptions
+- **Built-in JSON support** - no pyyaml or external libraries needed
 
 **Configuration Files**:
 
-**Ingestion Config** (`configs/ingestion/sample_csv_ingestion.yaml`):
-```yaml
-source_name: "sales_data"
-source_type: "csv"
-source_path: "/mnt/raw/sales/sales_2024.csv"
-target_table: "sales_raw"
-target_catalog: "bronze"
-target_schema: "sales"
-mode: "append"
-partition_by: ["order_date"]
-add_audit_columns: true
+**Ingestion Config** (`configs/ingestion/sample_csv_ingestion.json`):
+```json
+{
+  "source_name": "sales_data",
+  "source_type": "csv",
+  "source_path": "/mnt/raw/sales/sales_2024.csv",
+  "target_table": "sales_raw",
+  "target_catalog": "bronze",
+  "target_schema": "sales",
+  "mode": "append",
+  "partition_by": ["order_date"],
+  "add_audit_columns": true,
+  "tags": {
+    "domain": "sales",
+    "owner": "data_team"
+  }
+}
 ```
 
-**DQ Config** (`configs/dq/sample_dq_rules.yaml`):
-```yaml
-table_name: "sales_raw"
-catalog: "bronze"
-schema: "sales"
-rules:
-  - rule_name: "order_id_not_null"
-    rule_type: "null_check"
-    column: "order_id"
-    threshold: 0.0
+**DQ Config** (`configs/dq/sample_dq_rules.json`):
+```json
+{
+  "table_name": "sales_raw",
+  "catalog": "bronze",
+  "schema": "sales",
+  "rules": [
+    {
+      "rule_name": "order_id_not_null",
+      "rule_type": "null_check",
+      "column": "order_id",
+      "threshold": 0.0
+    }
+  ]
+}
 ```
 
 **Usage Example**:
@@ -315,20 +327,21 @@ rules:
 from lakeforge.metadata.config_parser import load_ingestion_config, load_dq_config
 
 # Load and validate configs
-ingestion_config = load_ingestion_config("configs/ingestion/sales.yaml")
-dq_config = load_dq_config("configs/dq/sales_rules.yaml")
+ingestion_config = load_ingestion_config("configs/ingestion/sales.json")
+dq_config = load_dq_config("configs/dq/sales_rules.json")
 
 # Use in pipeline
 df = csv_loader.load_csv(ingestion_config.source_path)
 results = dq_engine.validate_dataframe(df, dq_config.rules)
 ```
 
-**Why This Matters**:
-- Decouples configuration from code
-- Enables non-developers to modify pipelines
-- Version control for pipeline configurations
-- Validation prevents runtime errors
-- Reusability across different datasets
+**Why JSON Is Better Than YAML**:
+- ✅ **No external dependencies** - Python's built-in `json` module
+- ✅ **More universal** - Works everywhere, no YAML library needed
+- ✅ **JSON Schema validation** - Robust validation support
+- ✅ **Easier for programmatic generation** - Native Python data structures
+- ✅ **Better IDE support** - Most editors have great JSON validation
+- ✅ **Simpler syntax** - Fewer parsing errors
 
 ---
 
@@ -388,8 +401,10 @@ logger.log_operation(
 ### 1. Install Dependencies
 
 ```bash
-pip install pyspark delta-spark pyyaml chardet pandas openpyxl
+pip install pyspark delta-spark chardet pandas openpyxl
 ```
+
+**Note**: No YAML library needed! JSON support is built into Python.
 
 ### 2. Import the Package
 
@@ -444,11 +459,12 @@ See: `notebooks/demo/phase1_complete_example.py` for a fully working example tha
 
 1. **Modularity**: Each component is independent and reusable
 2. **Testability**: Pure functions and dependency injection enable unit testing
-3. **Configurability**: YAML configs enable non-code changes
+3. **Configurability**: JSON configs enable non-code changes
 4. **Observability**: Comprehensive logging and metrics
 5. **Scalability**: Built on PySpark for distributed processing
 6. **Reliability**: Delta Lake provides ACID transactions
 7. **Maintainability**: Clear separation of concerns
+8. **Zero Config Dependencies**: JSON is built into Python
 
 ### Production-Ready Features
 
@@ -460,6 +476,7 @@ See: `notebooks/demo/phase1_complete_example.py` for a fully working example tha
 ✅ Configuration validation  
 ✅ Error handling and recovery  
 ✅ OPTIMIZE and Z-ORDER for performance  
+✅ JSON configs with NO external dependencies  
 
 ---
 
