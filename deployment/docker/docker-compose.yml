@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  lakeforge-tests:
+    build:
+      context: ../../
+      dockerfile: deployment/docker/Dockerfile
+    container_name: lakeforge_unit_tests
+    volumes:
+      - ../../lakeforge:/app/lakeforge
+      - ../../tests:/app/tests
+      - ../../config:/app/config
+      - ../../configs:/app/configs
+      - ../../pipelines:/app/pipelines
+    environment:
+      - PYTHONPATH=/app
+      - SPARK_LOCAL_IP=127.0.0.1
+    command: pytest tests/unit_tests/
