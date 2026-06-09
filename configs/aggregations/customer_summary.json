@@ -1,0 +1,31 @@
+{
+  "description": "Customer lifetime value and metrics",
+  "source_tables": {
+    "customers": "silver.customers_clean",
+    "transactions": "silver.transactions_clean"
+  },
+  "join_logic": "customers LEFT JOIN transactions ON customers.customer_id = transactions.customer_id",
+  "group_by": ["customers.customer_id", "customers.customer_name", "customers.country"],
+  "aggregations": [
+    {
+      "name": "total_transactions",
+      "expression": "COUNT(transactions.transaction_id)"
+    },
+    {
+      "name": "total_spent",
+      "expression": "SUM(transactions.transaction_amount)"
+    },
+    {
+      "name": "avg_transaction_amount",
+      "expression": "AVG(transactions.transaction_amount)"
+    },
+    {
+      "name": "first_transaction_date",
+      "expression": "MIN(transactions.transaction_date)"
+    },
+    {
+      "name": "last_transaction_date",
+      "expression": "MAX(transactions.transaction_date)"
+    }
+  ]
+}

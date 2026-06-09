@@ -1,0 +1,55 @@
+[
+  {
+    "rule_id": "txn_01",
+    "rule_name": "transaction_id_not_null",
+    "column": "transaction_id",
+    "validation_type": "not_null",
+    "severity": "critical",
+    "action": "quarantine"
+  },
+  {
+    "rule_id": "txn_02",
+    "rule_name": "customer_id_not_null",
+    "column": "customer_id",
+    "validation_type": "not_null",
+    "severity": "critical",
+    "action": "quarantine"
+  },
+  {
+    "rule_id": "txn_03",
+    "rule_name": "amount_datatype",
+    "column": "transaction_amount",
+    "validation_type": "datatype",
+    "expected_type": "decimal",
+    "severity": "critical",
+    "action": "quarantine"
+  },
+  {
+    "rule_id": "txn_04",
+    "rule_name": "amount_positive",
+    "column": "transaction_amount",
+    "validation_type": "range",
+    "min_value": 0.01,
+    "severity": "warning",
+    "action": "flag"
+  },
+  {
+    "rule_id": "txn_05",
+    "rule_name": "orphaned_customers",
+    "validation_type": "referential_integrity",
+    "source_column": "customer_id",
+    "reference_table": "customers",
+    "reference_column": "customer_id",
+    "severity": "critical",
+    "action": "quarantine"
+  },
+  {
+    "rule_id": "txn_06",
+    "rule_name": "row_count_anomaly",
+    "validation_type": "row_count_threshold",
+    "baseline_count": 5000,
+    "threshold_percent": 0.20,
+    "severity": "critical",
+    "action": "alert"
+  }
+]

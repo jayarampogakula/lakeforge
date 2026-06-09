@@ -45,7 +45,7 @@ with DAG(
         task_id="ingest_customers",
         job_id="123456",  # Databricks Job ID
         notebook_params={
-            "config_path": "/Workspace/Users/jayarampogakula@gmail.com/lakeforge/configs/pipeline_config.json",
+            "config_dir": "/Workspace/Users/jayarampogakula@gmail.com/lakeforge/configs",
             "pipeline_name": "customers",
             "environment": "prod"
         }
@@ -55,7 +55,7 @@ with DAG(
         task_id="ingest_transactions",
         job_id="123456",
         notebook_params={
-            "config_path": "/Workspace/Users/jayarampogakula@gmail.com/lakeforge/configs/pipeline_config.json",
+            "config_dir": "/Workspace/Users/jayarampogakula@gmail.com/lakeforge/configs",
             "pipeline_name": "transactions",
             "environment": "prod"
         }
@@ -66,7 +66,7 @@ with DAG(
         task_id="clean_customers",
         job_id="789012",
         notebook_params={
-            "config_path": "/Workspace/Users/jayarampogakula@gmail.com/lakeforge/configs/pipeline_config.json",
+            "config_dir": "/Workspace/Users/jayarampogakula@gmail.com/lakeforge/configs",
             "source_table": "customers",
             "target_table": "customers_clean",
             "use_scd_type2": "true",
@@ -78,7 +78,7 @@ with DAG(
         task_id="clean_transactions",
         job_id="789012",
         notebook_params={
-            "config_path": "/Workspace/Users/jayarampogakula@gmail.com/lakeforge/configs/pipeline_config.json",
+            "config_dir": "/Workspace/Users/jayarampogakula@gmail.com/lakeforge/configs",
             "source_table": "transactions",
             "target_table": "transactions_clean",
             "use_scd_type2": "false",
@@ -91,7 +91,7 @@ with DAG(
         task_id="gold_summary",
         job_id="345678",
         notebook_params={
-            "config_path": "/Workspace/Users/jayarampogakula@gmail.com/lakeforge/configs/pipeline_config.json",
+            "config_dir": "/Workspace/Users/jayarampogakula@gmail.com/lakeforge/configs",
             "business_domain": "sales",
             "target_table": "customer_summary",
             "environment": "prod"

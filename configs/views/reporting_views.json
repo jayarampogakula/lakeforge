@@ -1,0 +1,19 @@
+{
+  "v_active_customers": {
+    "definition_type": "table",
+    "schema_type": "silver",
+    "source_table": "customers_clean",
+    "select_columns": [
+      "customer_id",
+      "customer_name",
+      "email",
+      "country"
+    ],
+    "filter_condition": "customer_status = 'Active'"
+  },
+  "v_high_value_transactions": {
+    "definition_type": "query",
+    "schema_type": "gold",
+    "query": "SELECT customer_id, total_spent FROM {catalog}.{gold_schema}.customer_summary WHERE total_spent > 100.00"
+  }
+}

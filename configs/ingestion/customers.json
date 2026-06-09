@@ -1,0 +1,22 @@
+{
+  "source_type": "csv",
+  "file_path": "/Volumes/lakehouse/raw/lakeforge_data/good_customers.csv",
+  "file_format": "csv",
+  "options": {
+    "header": "true",
+    "inferSchema": "true"
+  },
+  "bronze_table": "customers",
+  "silver_table": "customers_clean",
+  "business_key": ["customer_id"],
+  "merge_strategy": "upsert",
+  "schema": {
+    "customer_id": "int",
+    "customer_name": "string",
+    "email": "string",
+    "phone": "string",
+    "registration_date": "date",
+    "customer_status": "string",
+    "country": "string"
+  }
+}

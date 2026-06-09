@@ -1,7 +1,10 @@
 """
 Unit tests for LakeForge ViewManager
 """
+import sys
 import pytest
+has_real_pyspark = getattr(sys, "has_real_pyspark", True)
+pytestmark = pytest.mark.skipif(not has_real_pyspark, reason="Requires real PySpark")
 from pyspark.sql import SparkSession, Row
 from lakeforge.views.view_manager import ViewManager, create_view_manager
 from lakeforge.metadata.config_parser import ViewConfig

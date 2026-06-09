@@ -1,0 +1,45 @@
+[
+  {
+    "rule_id": "cust_01",
+    "rule_name": "customer_id_not_null",
+    "column": "customer_id",
+    "validation_type": "not_null",
+    "severity": "critical",
+    "action": "quarantine"
+  },
+  {
+    "rule_id": "cust_02",
+    "rule_name": "customer_id_unique",
+    "column": "customer_id",
+    "validation_type": "unique",
+    "severity": "critical",
+    "action": "quarantine"
+  },
+  {
+    "rule_id": "cust_03",
+    "rule_name": "email_format",
+    "column": "email",
+    "validation_type": "regex",
+    "pattern": "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$",
+    "severity": "warning",
+    "action": "flag"
+  },
+  {
+    "rule_id": "cust_04",
+    "rule_name": "status_allowed_values",
+    "column": "customer_status",
+    "validation_type": "allowed_values",
+    "allowed_values": ["Active", "Inactive"],
+    "severity": "warning",
+    "action": "flag"
+  },
+  {
+    "rule_id": "cust_05",
+    "rule_name": "null_spike_email",
+    "column": "email",
+    "validation_type": "null_rate_threshold",
+    "threshold": 0.10,
+    "severity": "critical",
+    "action": "alert"
+  }
+]

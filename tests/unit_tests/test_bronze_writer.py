@@ -1,7 +1,10 @@
 """
 Unit tests for LakeForge BronzeWriter auditing
 """
+import sys
 import pytest
+has_real_pyspark = getattr(sys, "has_real_pyspark", True)
+pytestmark = pytest.mark.skipif(not has_real_pyspark, reason="Requires real PySpark")
 from pyspark.sql import SparkSession, Row
 from lakeforge.bronze.bronze_writer import BronzeWriter, create_bronze_writer
 

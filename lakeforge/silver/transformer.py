@@ -75,6 +75,17 @@ class SilverTransformer:
                 elif "column" in config and "target_name" in config:
                     transformed_df = transformed_df.withColumnRenamed(config["column"], config["target_name"])
                     
+            elif trans_type == "select":
+                cols_to_select = config.get("columns", [])
+                if cols_to_select:
+                    transformed_df = transformed_df.select(*cols_to_select)
+                    
+            elif trans_type == "select_and_cast" or trans_type == "project":
+                col_mappings = config.get("columns", {})
+                if col_mappings:
+                    select_exprs = [col(c).cast(t).alias(c) for c, t in col_mappings.items()]
+                    transformed_df = transformed_df.select(*select_exprs)
+                    
             elif trans_type == "join":
                 right_table = config["right_table"]
                 join_keys = config["join_keys"]

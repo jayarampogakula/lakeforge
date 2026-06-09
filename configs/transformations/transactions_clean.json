@@ -1,0 +1,31 @@
+{
+  "source_table": "transactions",
+  "transformations": [
+    {
+      "type": "select_and_cast",
+      "columns": {
+        "transaction_id": "int",
+        "customer_id": "int",
+        "transaction_date": "date",
+        "transaction_amount": "decimal(10,2)",
+        "product_category": "string",
+        "payment_method": "string",
+        "transaction_status": "string"
+      }
+    },
+    {
+      "type": "filter",
+      "condition": "transaction_amount > 0"
+    },
+    {
+      "type": "derived_column",
+      "name": "transaction_year",
+      "expression": "year(transaction_date)"
+    },
+    {
+      "type": "derived_column",
+      "name": "transaction_month",
+      "expression": "month(transaction_date)"
+    }
+  ]
+}

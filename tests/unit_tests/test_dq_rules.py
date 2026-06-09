@@ -1,7 +1,10 @@
 """
 Unit tests for LakeForge DQEngine validations
 """
+import sys
 import pytest
+has_real_pyspark = getattr(sys, "has_real_pyspark", True)
+pytestmark = pytest.mark.skipif(not has_real_pyspark, reason="Requires real PySpark")
 from pyspark.sql import SparkSession, Row
 from pyspark.sql.types import StructType, StructField, StringType, IntegerType
 from lakeforge.dq.dq_engine import DQEngine, create_dq_engine

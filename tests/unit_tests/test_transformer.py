@@ -1,7 +1,10 @@
 """
 Unit tests for LakeForge SilverTransformer transformations
 """
+import sys
 import pytest
+has_real_pyspark = getattr(sys, "has_real_pyspark", True)
+pytestmark = pytest.mark.skipif(not has_real_pyspark, reason="Requires real PySpark")
 from pyspark.sql import SparkSession, Row
 from lakeforge.silver.transformer import SilverTransformer
 
@@ -146,3 +149,40 @@ def test_silver_transformer_join(spark):
     
     # Cleanup catalog
     spark.sql("DROP TABLE IF EXISTS my_db.right_table")
+
+def test_silver_transformer_select(spark):
+    data = [Row(id=1, name="Alice", country="US")]
+    df = spark.createDataFrame(data)
+    
+    configs = [
+        {"type": "select", "columns": ["id", "name"]}
+    ]
+    
+    transformed_df = SilverTransformer.transform(df, configs)
+    cols = transformed_df.columns
+    
+    assert "country" not in cols
+    assert "id" in cols
+    assert "name" in cols
+
+def test_silver_transformer_select_and_cast(spark):
+    data = [Row(id="1", val="100.50", extra="ignored")]
+    df = spark.createDataFrame(data)
+    
+    configs = [
+        {
+            "type": "select_and_cast",
+            "columns": {
+                "id": "int",
+                "val": "double"
+            }
+        }
+    ]
+    
+    transformed_df = SilverTransformer.transform(df, configs)
+    cols = transformed_df.columns
+    schema_dict = {f.name: str(f.dataType) for f in transformed_df.schema.fields}
+    
+    assert "extra" not in cols
+    assert "IntegerType" in schema_dict["id"]
+    assert "DoubleType" in schema_dict["val"]

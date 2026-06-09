@@ -1,0 +1,14 @@
+{
+  "dev": {
+    "catalog": "lakehouse",
+    "bronze_schema": "bronze",
+    "silver_schema": "silver",
+    "gold_schema": "gold"
+  },
+  "prod": {
+    "catalog": "lakehouse_prod",
+    "bronze_schema": "bronze",
+    "silver_schema": "silver",
+    "gold_schema": "gold"
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "description": "Daily revenue by category",
+  "source_tables": {
+    "transactions": "silver.transactions_clean"
+  },
+  "group_by": ["transaction_date", "product_category"],
+  "aggregations": [
+    {
+      "name": "transaction_count",
+      "expression": "COUNT(*)"
+    },
+    {
+      "name": "total_revenue",
+      "expression": "SUM(transaction_amount)"
+    },
+    {
+      "name": "avg_transaction_value",
+      "expression": "AVG(transaction_amount)"
+    }
+  ]
+}

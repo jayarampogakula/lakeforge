@@ -1,0 +1,42 @@
+{
+  "source_table": "customers",
+  "transformations": [
+    {
+      "type": "select",
+      "columns": [
+        "customer_id",
+        "customer_name",
+        "email",
+        "phone",
+        "registration_date",
+        "customer_status",
+        "country"
+      ]
+    },
+    {
+      "type": "deduplicate",
+      "columns": ["customer_id"],
+      "strategy": "keep_latest",
+      "order_by": "_ingestion_timestamp"
+    },
+    {
+      "type": "standardize",
+      "column": "email",
+      "operation": "lowercase"
+    },
+    {
+      "type": "standardize",
+      "column": "phone",
+      "operation": "remove_non_numeric"
+    },
+    {
+      "type": "derived_column",
+      "name": "customer_age_days",
+      "expression": "datediff(current_date(), registration_date)"
+    },
+    {
+      "type": "filter",
+      "condition": "customer_status IS NOT NULL"
+    }
+  ]
+}
