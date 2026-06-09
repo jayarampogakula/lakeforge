@@ -79,7 +79,7 @@ resource "databricks_job" "medallion_pipeline" {
     notebook_task {
       notebook_path = "/lakeforge/pipelines/Bronze_Generic_Pipeline"
       base_parameters = {
-        config_path     = "/Workspace/Users/jayarampogakula@gmail.com/lakeforge/config/pipeline_config.json"
+        config_path     = "/Workspace/Users/jayarampogakula@gmail.com/lakeforge/configs/pipeline_config.json"
         source_system   = "erp"
         pipeline_name   = "customers"
         load_type       = "full"
@@ -95,7 +95,7 @@ resource "databricks_job" "medallion_pipeline" {
     notebook_task {
       notebook_path = "/lakeforge/pipelines/Bronze_Generic_Pipeline"
       base_parameters = {
-        config_path     = "/Workspace/Users/jayarampogakula@gmail.com/lakeforge/config/pipeline_config.json"
+        config_path     = "/Workspace/Users/jayarampogakula@gmail.com/lakeforge/configs/pipeline_config.json"
         source_system   = "erp"
         pipeline_name   = "transactions"
         load_type       = "full"
@@ -114,7 +114,7 @@ resource "databricks_job" "medallion_pipeline" {
     notebook_task {
       notebook_path = "/lakeforge/pipelines/Silver_Generic_Pipeline"
       base_parameters = {
-        config_path     = "/Workspace/Users/jayarampogakula@gmail.com/lakeforge/config/pipeline_config.json"
+        config_path     = "/Workspace/Users/jayarampogakula@gmail.com/lakeforge/configs/pipeline_config.json"
         source_table    = "customers"
         target_table    = "customers_clean"
         environment     = var.environment
@@ -133,7 +133,7 @@ resource "databricks_job" "medallion_pipeline" {
     notebook_task {
       notebook_path = "/lakeforge/pipelines/Silver_Generic_Pipeline"
       base_parameters = {
-        config_path     = "/Workspace/Users/jayarampogakula@gmail.com/lakeforge/config/pipeline_config.json"
+        config_path     = "/Workspace/Users/jayarampogakula@gmail.com/lakeforge/configs/pipeline_config.json"
         source_table    = "transactions"
         target_table    = "transactions_clean"
         environment     = var.environment
@@ -155,7 +155,7 @@ resource "databricks_job" "medallion_pipeline" {
     notebook_task {
       notebook_path = "/lakeforge/pipelines/GOLD_Aggregation_Pipeline"
       base_parameters = {
-        config_path     = "/Workspace/Users/jayarampogakula@gmail.com/lakeforge/config/pipeline_config.json"
+        config_path     = "/Workspace/Users/jayarampogakula@gmail.com/lakeforge/configs/pipeline_config.json"
         business_domain = "sales"
         target_table    = "customer_summary"
         environment     = var.environment
