@@ -47,9 +47,10 @@ class SCDType2Handler:
     def add_scd_columns(
         self,
         df: DataFrame,
-        key_columns: List[str],
+        key_columns: Optional[List[str]] = None,
         tracked_columns: Optional[List[str]] = None,
-        effective_date: Optional[date] = None
+        effective_date: Optional[date] = None,
+        business_keys: Optional[List[str]] = None
     ) -> DataFrame:
         """
         Add SCD Type 2 metadata columns to DataFrame.
@@ -59,20 +60,25 @@ class SCDType2Handler:
             key_columns: Business key columns
             tracked_columns: Columns to track for changes (all if None)
             effective_date: Effective date for the records (today if None)
+            business_keys: Alias for key_columns
             
         Returns:
             DataFrame with SCD columns
         """
+        keys = key_columns or business_keys
+        if not keys:
+            raise ValueError("Either key_columns or business_keys must be provided")
+            
         # Determine tracked columns
         if tracked_columns is None:
-            tracked_columns = [c for c in df.columns if c not in key_columns]
+            tracked_columns = [c for c in df.columns if c not in keys and c not in [self.hash_col, self.effective_date_col, self.end_date_col, self.current_flag_col]]
         
         # Set effective date
         if effective_date is None:
             effective_date = date.today()
         
         # Add hash column for change detection
-        hash_columns = key_columns + tracked_columns
+        hash_columns = keys + tracked_columns
         df = df.withColumn(
             self.hash_col,
             md5(concat_ws("||", *[coalesce(col(c).cast("string"), lit("NULL")) for c in hash_columns]))
@@ -91,10 +97,11 @@ class SCDType2Handler:
         target_table: str,
         catalog: str,
         schema: str,
-        key_columns: List[str],
+        key_columns: Optional[List[str]] = None,
         tracked_columns: Optional[List[str]] = None,
         effective_date: Optional[date] = None,
-        create_if_not_exists: bool = True
+        create_if_not_exists: bool = True,
+        business_keys: Optional[List[str]] = None
     ) -> Dict[str, Any]:
         """
         Merge source data into target table using SCD Type 2 logic.
@@ -108,10 +115,15 @@ class SCDType2Handler:
             tracked_columns: Columns to track for changes
             effective_date: Effective date for new records
             create_if_not_exists: Create table if it doesn't exist
+            business_keys: Alias for key_columns
             
         Returns:
             Merge statistics dictionary
         """
+        keys = key_columns or business_keys
+        if not keys:
+            raise ValueError("Either key_columns or business_keys must be provided")
+            
         full_table_name = f"{catalog}.{schema}.{target_table}"
         
         # Set effective date
@@ -120,10 +132,10 @@ class SCDType2Handler:
         
         # Add SCD columns to source
         source_df = self.add_scd_columns(
-            source_df,
-            key_columns,
-            tracked_columns,
-            effective_date
+            df=source_df,
+            key_columns=keys,
+            tracked_columns=tracked_columns,
+            effective_date=effective_date
         )
         
         # Check if target table exists
@@ -156,7 +168,7 @@ class SCDType2Handler:
             source_df,
             target_delta,
             current_target_df,
-            key_columns,
+            keys,
             effective_date,
             full_table_name
         )

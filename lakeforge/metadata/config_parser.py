@@ -54,9 +54,10 @@ class IngestionConfig:
 class DQRule:
     """Data Quality rule configuration."""
     rule_name: str
-    rule_type: str  # null_check, duplicate_check, regex_check, range_check, custom_sql
+    rule_type: Optional[str] = None  # null_check, duplicate_check, regex_check, range_check, custom_sql, datatype_check
     column: Optional[str] = None
     columns: Optional[List[str]] = None
+    validation_type: Optional[str] = None  # Map validation_type from configs
     
     # Rule-specific parameters
     threshold: Optional[float] = None
@@ -69,6 +70,18 @@ class DQRule:
     # Action on failure
     action: str = "quarantine"  # quarantine, fail, warn
     severity: str = "error"  # error, warning, info
+
+    def __post_init__(self):
+        if not self.rule_type and self.validation_type:
+            val_map = {
+                "not_null": "null_check",
+                "unique": "duplicate_check",
+                "regex": "regex_check",
+                "range": "range_check",
+                "custom_sql": "custom_sql",
+                "datatype": "datatype_check"
+            }
+            self.rule_type = val_map.get(self.validation_type, self.validation_type)
 
 
 @dataclass
@@ -153,7 +166,87 @@ class ConfigParser:
         """
         with open(config_path, 'r') as f:
             return json.load(f)
-    
+
+    @staticmethod
+    def parse_monolithic_pipeline_config(config_path: str) -> Dict[str, Any]:
+        """
+        Parse the monolithic pipeline_config.json configuration.
+        """
+        with open(config_path, 'r') as f:
+            return json.load(f)
+
+    @staticmethod
+    def get_ingestion_config(
+        monolithic_config: Dict[str, Any], 
+        source_name: str, 
+        environment: str
+    ) -> IngestionConfig:
+        """
+        Extract and construct an IngestionConfig for a source from monolithic config.
+        """
+        env_config = monolithic_config["environments"][environment]
+        source_config = monolithic_config["sources"][source_name]
+        
+        # Options conversion
+        options = source_config.get("options", {})
+        header_val = options.get("header", "true").lower() == "true"
+        infer_val = options.get("inferSchema", "true").lower() == "true"
+        
+        mode_val = "append"
+        merge_strat = source_config.get("merge_strategy", "append")
+        if merge_strat == "upsert":
+            mode_val = "merge"
+        elif merge_strat == "overwrite":
+            mode_val = "overwrite"
+            
+        return IngestionConfig(
+            source_name=source_name,
+            source_type=source_config.get("source_type", "csv"),
+            source_path=source_config.get("file_path"),
+            target_table=source_config.get("bronze_table"),
+            target_catalog=env_config["catalog"],
+            target_schema=env_config["bronze_schema"],
+            file_format=source_config.get("file_format", "csv"),
+            header=header_val,
+            delimiter=options.get("delimiter", ","),
+            encoding=options.get("encoding", "utf-8"),
+            infer_schema=infer_val,
+            mode=mode_val
+        )
+
+    @staticmethod
+    def get_dq_config(
+        monolithic_config: Dict[str, Any],
+        source_name: str,
+        environment: str
+    ) -> DQConfig:
+        """
+        Extract and construct a DQConfig for a source from monolithic config.
+        """
+        env_config = monolithic_config["environments"][environment]
+        source_config = monolithic_config["sources"][source_name]
+        rules_list = monolithic_config.get("dq_rules", {}).get(source_name, [])
+        
+        parsed_rules = []
+        for rule_dict in rules_list:
+            # Map validation_type to rule_type if needed
+            rule_args = dict(rule_dict)
+            if "rule_type" not in rule_args and "validation_type" in rule_args:
+                rule_args["rule_type"] = rule_args["validation_type"]
+            parsed_rules.append(DQRule(**rule_args))
+            
+        target_tbl = source_config.get("bronze_table")
+        quarantine_tbl = f"{target_tbl}_quarantine"
+        
+        return DQConfig(
+            table_name=target_tbl,
+            catalog=env_config["catalog"],
+            schema=env_config["bronze_schema"],
+            rules=parsed_rules,
+            quarantine_table=quarantine_tbl,
+            enable_scorecard=True
+        )
+
     @staticmethod
     def validate_ingestion_config(config: IngestionConfig) -> List[str]:
         """
@@ -220,11 +313,11 @@ class ConfigParser:
                 errors.append(f"Rule {idx}: rule_type is required")
             
             valid_rule_types = ['null_check', 'duplicate_check', 'regex_check', 
-                               'range_check', 'datatype_check', 'custom_sql']
+                               'range_check', 'datatype_check', 'custom_sql', 'referential_integrity', 'row_count_threshold', 'null_rate_threshold']
             if rule.rule_type not in valid_rule_types:
                 errors.append(f"Rule {idx}: Invalid rule_type: {rule.rule_type}")
             
-            if rule.action not in ['quarantine', 'fail', 'warn']:
+            if rule.action not in ['quarantine', 'fail', 'warn', 'flag', 'alert']:
                 errors.append(f"Rule {idx}: Invalid action: {rule.action}")
         
         return errors

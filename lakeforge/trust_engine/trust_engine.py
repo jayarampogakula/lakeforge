@@ -388,6 +388,52 @@ class TrustEngine:
         except Exception:
             log_df.write.format("delta").mode("overwrite").saveAsTable(table_path)
 
+    def calculate_trust_score(
+        self,
+        table_name: str,
+        dq_results: Any,
+        pipeline_stage: str,
+        drift_results: Optional[Dict[str, Any]] = None
+    ) -> Dict[str, Any]:
+        """
+        Calculate an overall trust score for a table.
+        """
+        if isinstance(dq_results, list):
+            total_rules = len(dq_results)
+            passed_rules = sum(1 for r in dq_results if r.get("passed", False))
+            dq_score = (passed_rules / total_rules * 100) if total_rules > 0 else 100.0
+        elif isinstance(dq_results, dict):
+            rules_exec = dq_results.get("rules_executed", 0)
+            rules_pass = dq_results.get("rules_passed", 0)
+            dq_score = dq_results.get("dq_score", (rules_pass / rules_exec * 100) if rules_exec > 0 else 100.0)
+        else:
+            dq_score = 100.0
+            
+        drift_score = 100.0
+        if drift_results:
+            drift_score = drift_results.get("drift_score", 1.0) * 100
+            
+        overall_score = (dq_score + drift_score) / 2
+        
+        if overall_score >= 90.0:
+            trust_level = "EXCELLENT"
+        elif overall_score >= 75.0:
+            trust_level = "GOOD"
+        elif overall_score >= 50.0:
+            trust_level = "FAIR"
+        else:
+            trust_level = "POOR"
+            
+        return {
+            "table_name": table_name,
+            "pipeline_stage": pipeline_stage,
+            "dq_score": dq_score,
+            "drift_score": drift_score,
+            "overall_score": overall_score,
+            "trust_level": trust_level,
+            "timestamp": datetime.now().isoformat()
+        }
+
 
 def create_trust_engine(spark: SparkSession) -> TrustEngine:
     """
