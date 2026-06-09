@@ -112,6 +112,24 @@ class DQConfig:
             json.dump(self.to_dict(), f, indent=indent)
 
 
+@dataclass
+class ViewConfig:
+    """Configuration for creating a Spark SQL view."""
+    view_name: str
+    catalog: str
+    schema: str
+    definition_type: str  # table, query
+    view_type: str = "persistent"  # persistent, temp
+    source_table: Optional[str] = None
+    select_columns: Optional[List[str]] = None
+    filter_condition: Optional[str] = None
+    query: Optional[str] = None
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert config to dictionary."""
+        return asdict(self)
+
+
 class ConfigParser:
     """Parser for LakeForge JSON configurations."""
     
@@ -321,6 +339,84 @@ class ConfigParser:
                 errors.append(f"Rule {idx}: Invalid action: {rule.action}")
         
         return errors
+
+    @staticmethod
+    def get_view_configs(
+        monolithic_config: Dict[str, Any],
+        environment: str
+    ) -> List[ViewConfig]:
+        """
+        Extract and construct a list of ViewConfigs from monolithic config.
+        """
+        env_config = monolithic_config["environments"][environment]
+        views_dict = monolithic_config.get("views", {})
+        
+        parsed_configs = []
+        for view_name, view_info in views_dict.items():
+            schema_type = view_info.get("schema_type", "silver")
+            
+            if schema_type == "bronze":
+                schema_val = env_config["bronze_schema"]
+            elif schema_type == "gold":
+                schema_val = env_config["gold_schema"]
+            else:
+                schema_val = env_config["silver_schema"]
+                
+            parsed_configs.append(
+                ViewConfig(
+                    view_name=view_name,
+                    catalog=env_config["catalog"],
+                    schema=schema_val,
+                    definition_type=view_info.get("definition_type", "table"),
+                    view_type=view_info.get("view_type", "persistent"),
+                    source_table=view_info.get("source_table"),
+                    select_columns=view_info.get("select_columns"),
+                    filter_condition=view_info.get("filter_condition"),
+                    query=view_info.get("query")
+                )
+            )
+            
+        return parsed_configs
+
+    @staticmethod
+    def validate_view_config(config: ViewConfig) -> List[str]:
+        """
+        Validate view configuration.
+        """
+        errors = []
+        if not config.view_name:
+            errors.append("view_name is required")
+        if not config.catalog:
+            errors.append("catalog is required")
+        if not config.schema:
+            errors.append("schema is required")
+        if config.definition_type not in ["table", "query"]:
+            errors.append(f"Invalid definition_type: {config.definition_type}")
+        if config.view_type not in ["persistent", "temp"]:
+            errors.append(f"Invalid view_type: {config.view_type}")
+            
+        if config.definition_type == "table" and not config.source_table:
+            errors.append("source_table is required when definition_type is 'table'")
+        if config.definition_type == "query" and not config.query:
+            errors.append("query is required when definition_type is 'query'")
+            
+        return errors
+
+
+def load_view_configs(config_path: str, environment: str) -> List[ViewConfig]:
+    """
+    Load and validate view configurations from a monolithic JSON file.
+    """
+    config_dict = ConfigParser.parse_monolithic_pipeline_config(config_path)
+    configs = ConfigParser.get_view_configs(config_dict, environment)
+    
+    for config in configs:
+        errors = ConfigParser.validate_view_config(config)
+        if errors:
+            raise ValueError(f"Invalid view config for '{config.view_name}': {', '.join(errors)}")
+            
+    return configs
+
 
 
 def load_ingestion_config(config_path: str) -> IngestionConfig:

@@ -18,10 +18,11 @@ from .metadata.config_parser import ConfigParser, load_ingestion_config, load_dq
 from .metadata.schema_drift_detector import SchemaDriftDetector, create_schema_drift_detector
 from .reporting.reporting import ReportGenerator, create_report_generator
 from .observability.logger import LakeForgeLogger
+from .views.view_manager import ViewManager, create_view_manager
 
 __all__ = [
     "CSVLoader", "ExcelLoader", "JSONLoader", "SchemaDetector", "BronzeWriter", "DQEngine", "TrustEngine",
     "SCDType2Handler", "SilverTransformer", "Deduplicator", "SilverMergeEngine",
     "GoldAggregator", "ConfigParser", "SchemaDriftDetector", "ReportGenerator",
-    "LakeForgeLogger"
+    "LakeForgeLogger", "ViewManager", "create_view_manager"
 ]
