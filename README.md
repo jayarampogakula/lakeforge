@@ -124,9 +124,11 @@ lakeforge/
 │   │   ├── oracle.md
 │   │   └── ...
 │   └── architecture/       # Architecture documentation
-├── examples/               # Example notebooks and pipelines
-├── tests/                 # Unit and integration tests
-└── configs/              # Configuration templates
+├── pipelines/               # Reusable Databricks workflow notebooks
+├── deployment/              # Terraform, Docker, and Airflow orchestrations
+├── tests/                   # Unit and integration tests
+└── configs/                 # JSON configurations for pipelines and DQ
+
 
 ```
 
