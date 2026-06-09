@@ -1,7 +1,7 @@
 # Databricks notebook source
 # MAGIC %md
 # MAGIC # Test Dataset Generator
-# MAGIC 
+# MAGIC
 # MAGIC Generate realistic test CSV files for LakeForge validation:
 # MAGIC - Clean baseline datasets
 # MAGIC - Corrupted datasets (for chaos testing)
@@ -17,10 +17,17 @@ from datetime import datetime, timedelta
 import random
 
 # Configuration
-DATA_DIR = "/Workspace/Users/jayarampogakula@gmail.com/lakeforge/data"
-dbutils.fs.mkdirs(DATA_DIR)
+# Configuration
+catalog = "lakehouse"
+schema = "raw"
+volume = "lakeforge_data"
 
-print(f"✅ Data directory created: {DATA_DIR}")
+sql(f"CREATE SCHEMA IF NOT EXISTS {catalog}.{schema}")
+sql(f"CREATE VOLUME IF NOT EXISTS {catalog}.{schema}.{volume}")
+
+print(f"✅ Volume created: {catalog}.{schema}.{volume}")
+volume_path = f"/Volumes/{catalog}/{schema}/{volume}"
+print(f"✅ Volume path: {volume_path}")
 
 # COMMAND ----------
 
@@ -81,9 +88,13 @@ display(transactions.head())
 
 # COMMAND ----------
 
-# Save to CSV
-customers.to_csv(f"/dbfs{DATA_DIR}/good_customers.csv", index=False)
-transactions.to_csv(f"/dbfs{DATA_DIR}/good_transactions.csv", index=False)
+# DBTITLE 1,Cell 8
+# Convert to CSV string and write using dbutils
+customers_csv = customers.to_csv(index=False)
+dbutils.fs.put(f"{volume_path}/good_customers.csv", customers_csv, overwrite=True)
+
+transactions_csv = transactions.to_csv(index=False)
+dbutils.fs.put(f"{volume_path}/good_transactions.csv", transactions_csv, overwrite=True)
 
 print("✅ Saved clean datasets:")
 print(f"   - good_customers.csv ({len(customers)} rows)")
@@ -93,7 +104,7 @@ print(f"   - good_transactions.csv ({len(transactions)} rows)")
 
 # MAGIC %md
 # MAGIC ## 4. Generate BAD Dataset #1: Join Explosion
-# MAGIC 
+# MAGIC
 # MAGIC Create duplicate customer_ids to cause massive join explosion
 
 # COMMAND ----------
@@ -110,7 +121,7 @@ bad_customers = bad_customers.sample(frac=1, random_state=42).reset_index(drop=T
 print(f"❌ Created bad_join_customers.csv with {len(bad_customers)} rows (includes {len(duplicates)*4} duplicates)")
 print(f"   This will cause join explosion: 5000 transactions → {len(bad_customers)/1000 * 5000:.0f} rows!")
 
-bad_customers.to_csv(f"/dbfs{DATA_DIR}/bad_join_customers.csv", index=False)
+bad_customers.to_csv(f"{volume_path}/bad_join_customers.csv", index=False)
 
 # Check duplicates
 dup_count = bad_customers[bad_customers.duplicated(subset=['customer_id'], keep=False)]
@@ -120,7 +131,7 @@ print(f"   Duplicate customer_ids: {len(dup_count)} records")
 
 # MAGIC %md
 # MAGIC ## 5. Generate BAD Dataset #2: Schema Drift
-# MAGIC 
+# MAGIC
 # MAGIC Change transaction_amount from DECIMAL to STRING (currency format)
 
 # COMMAND ----------
@@ -135,13 +146,13 @@ print(f"   BEFORE: transaction_amount = DECIMAL(10,2)")
 print(f"   AFTER:  transaction_amount = STRING (currency format)")
 print(f"   Example values: {drift_transactions['transaction_amount'].head(3).tolist()}")
 
-drift_transactions.to_csv(f"/dbfs{DATA_DIR}/bad_schema_drift.csv", index=False)
+drift_transactions.to_csv(f"{volume_path}/bad_schema_drift.csv", index=False)
 
 # COMMAND ----------
 
 # MAGIC %md
 # MAGIC ## 6. Generate BAD Dataset #3: Null Spike
-# MAGIC 
+# MAGIC
 # MAGIC Create 80% nulls in email column (was ~0%)
 
 # COMMAND ----------
@@ -156,13 +167,13 @@ print(f"❌ Created bad_null_spike.csv with {null_pct:.1f}% nulls in email colum
 print(f"   BEFORE: ~0% nulls")
 print(f"   AFTER:  {null_pct:.1f}% nulls (spike of {null_pct:.1f}%!)")
 
-null_customers.to_csv(f"/dbfs{DATA_DIR}/bad_null_spike.csv", index=False)
+null_customers.to_csv(f"{volume_path}/bad_null_spike.csv", index=False)
 
 # COMMAND ----------
 
 # MAGIC %md
 # MAGIC ## 7. Generate BAD Dataset #4: Duplicate Business Keys
-# MAGIC 
+# MAGIC
 # MAGIC Create non-unique customer_ids (primary key violation)
 
 # COMMAND ----------
@@ -179,13 +190,13 @@ print(f"   Total rows: {total_rows}")
 print(f"   Unique customer_ids: {unique_ids}")
 print(f"   Duplicates: {total_rows - unique_ids} records")
 
-dup_customers.to_csv(f"/dbfs{DATA_DIR}/bad_duplicate_keys.csv", index=False)
+dup_customers.to_csv(f"{volume_path}/bad_duplicate_keys.csv", index=False)
 
 # COMMAND ----------
 
 # MAGIC %md
 # MAGIC ## 8. Generate BAD Dataset #5: Row Count Anomaly
-# MAGIC 
+# MAGIC
 # MAGIC Only 100 rows instead of expected 5000 (99% data loss!)
 
 # COMMAND ----------
@@ -201,13 +212,13 @@ print(f"   Expected: {expected} rows")
 print(f"   Actual:   {actual} rows")
 print(f"   Data loss: {loss_pct:.1f}%!")
 
-anomaly_transactions.to_csv(f"/dbfs{DATA_DIR}/bad_row_count.csv", index=False)
+anomaly_transactions.to_csv(f"{volume_path}/bad_row_count.csv", index=False)
 
 # COMMAND ----------
 
 # MAGIC %md
 # MAGIC ## 9. Generate BAD Dataset #6: Anti-Join (Orphaned Records)
-# MAGIC 
+# MAGIC
 # MAGIC Create transactions that reference non-existent customer_ids
 
 # COMMAND ----------
@@ -224,7 +235,7 @@ print(f"   Total transactions: {len(orphan_transactions)}")
 print(f"   Orphaned records: {len(orphaned)} (no matching customer_id)")
 print(f"   These will fail anti-join validation!")
 
-orphan_transactions.to_csv(f"/dbfs{DATA_DIR}/bad_orphaned_transactions.csv", index=False)
+orphan_transactions.to_csv(f"{volume_path}/bad_orphaned_transactions.csv", index=False)
 
 # COMMAND ----------
 
@@ -233,7 +244,7 @@ orphan_transactions.to_csv(f"/dbfs{DATA_DIR}/bad_orphaned_transactions.csv", ind
 
 # COMMAND ----------
 
-files = dbutils.fs.ls(DATA_DIR)
+files = dbutils.fs.ls(volume_path)
 
 print("=" * 80)
 print("✅ ALL TEST DATASETS GENERATED")
@@ -241,11 +252,10 @@ print("=" * 80)
 
 for file in files:
     if file.name.endswith('.csv'):
-        df = pd.read_csv(f"/dbfs{file.path}")
+        df = pd.read_csv(file.path.replace('dbfs:', ''))
         status = "✅ CLEAN" if file.name.startswith("good_") else "❌ CORRUPTED"
         print(f"{status} {file.name:40s} {len(df):5d} rows")
 
 print("=" * 80)
 print("\n🚀 Ready for validation testing!")
 print("\nNext step: Run BRONZE_Ingestion_Pipeline notebook")
-

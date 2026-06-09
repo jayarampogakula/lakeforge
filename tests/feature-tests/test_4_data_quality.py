@@ -1,7 +1,11 @@
 # Databricks notebook source
+# /// script
+# [tool.databricks.environment]
+# environment_version = "2"
+# ///
 # MAGIC %md
 # MAGIC # Test 4: Data Quality Validation
-# MAGIC 
+# MAGIC
 # MAGIC Tests DQ rules, quarantine generation, and scorecards.
 
 # COMMAND ----------
@@ -118,4 +122,3 @@ print(f"✅ Passed: {dq_results['rules_passed']}")
 print(f"✅ Failed: {dq_results['rules_failed']}")
 print(f"✅ DQ Score: {dq_results['rules_passed']}/{dq_results['rules_executed']}")
 print("="*70)
-
