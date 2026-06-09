@@ -8,19 +8,31 @@ This guide describes the core Python modules, utilities, and engines in the Lake
 
 Handles reading from a wide range of batch and streaming data sources, dynamically converting raw source formats to Spark DataFrames.
 
-### Core Loaders
+### File Formats (`lakeforge/ingestion/files/`)
 * **`csv_loader.py`**: Loads CSV files using configured headers, custom delimiters, and encoding options.
 * **`excel_loader.py`**: Loads spreadsheets, supporting specific sheet selections and header configurations.
 * **`json_loader.py`**: Loads single-line and multi-line nested JSON structures.
 * **`parquet_loader.py`**: Reads optimized columnar Parquet datasets.
-* **`s3_loader.py` & `gcs_loader.py`**: AWS and Google Cloud Storage loaders optimized for bucket security credentials and folder mounts.
+* **`filesystem_loader.py`**: Reads directory structures and maps raw file paths.
+
+### Databases & Warehouses (`lakeforge/ingestion/databases/`)
 * **`oracle_loader.py`, `postgres_loader.py`, `mysql_loader.py`, `azure_sql_loader.py`**: Relational database loaders executing pushdown queries via JDBC.
 * **`bigquery_loader.py`, `redshift_loader.py`, `snowflake_loader.py`**: Enterprise warehouse loaders optimized for query pushdown and stage operations.
+* **`mongodb_loader.py`**: Connector for NoSQL document databases.
+
+### Streaming (`lakeforge/ingestion/streaming/`)
 * **`kafka_loader.py` & `streaming_loader.py`**: Structured streaming ingress from event streams and directories.
+
+### REST APIs & SaaS (`lakeforge/ingestion/apis/`)
+* **`api_loader.py`**: Generic REST API data loader with pagination, OAuth/token auth, rate limiting, and incremental load checkpoints.
 * **`jira_loader.py`, `sharepoint_loader.py`, `google_sheets_loader.py`**: Specialized SaaS API connectors.
 
-### Metadata Extraction
+### Cloud Storage (`lakeforge/ingestion/cloud/`)
+* **`s3_loader.py` & `gcs_loader.py`**: AWS S3 and Google Cloud Storage loaders optimized for bucket security credentials and folder mounts.
+
+### Utilities (`lakeforge/ingestion/utilities/`)
 * **`schema_detector.py`**: Infers a Spark `StructType` schema from CSV, JSON, and Parquet files dynamically before executing load pipelines.
+
 
 ---
 

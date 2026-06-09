@@ -16,7 +16,7 @@ Phase 1 of LakeForge implements the core foundational components for a productio
 
 ## Component Details
 
-### 1. CSV Loader (`lakeforge/ingestion/csv_loader.py`)
+### 1. CSV Loader (`lakeforge/ingestion/files/csv_loader.py`)
 
 **Purpose**: Load CSV files into Spark DataFrames with intelligent handling of encoding, delimiters, and schema detection.
 
@@ -31,7 +31,7 @@ Phase 1 of LakeForge implements the core foundational components for a productio
 
 **Usage Example**:
 ```python
-from lakeforge.ingestion.csv_loader import create_csv_loader
+from lakeforge.ingestion.files.csv_loader import create_csv_loader
 
 csv_loader = create_csv_loader(spark)
 
@@ -51,7 +51,7 @@ df = csv_loader.load_csv_with_metadata(
 
 ---
 
-### 2. Excel Loader (`lakeforge/ingestion/excel_loader.py`)
+### 2. Excel Loader (`lakeforge/ingestion/files/excel_loader.py`)
 
 **Purpose**: Load Excel files with support for multiple sheets, normalization, and data cleaning.
 
@@ -65,7 +65,7 @@ df = csv_loader.load_csv_with_metadata(
 
 **Usage Example**:
 ```python
-from lakeforge.ingestion.excel_loader import create_excel_loader
+from lakeforge.ingestion.files.excel_loader import create_excel_loader
 
 excel_loader = create_excel_loader(spark)
 

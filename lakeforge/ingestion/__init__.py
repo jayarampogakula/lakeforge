@@ -3,29 +3,30 @@ LakeForge Ingestion Module
 Data loaders for various file formats
 """
 
-from lakeforge.ingestion.csv_loader import CSVLoader, create_csv_loader
-from lakeforge.ingestion.excel_loader import ExcelLoader, create_excel_loader
-from lakeforge.ingestion.json_loader import JSONLoader, create_json_loader
-from lakeforge.ingestion.schema_detector import SchemaDetector, create_schema_detector
+from lakeforge.ingestion.files.csv_loader import CSVLoader, create_csv_loader
+from lakeforge.ingestion.files.excel_loader import ExcelLoader, create_excel_loader
+from lakeforge.ingestion.files.json_loader import JSONLoader, create_json_loader
+from lakeforge.ingestion.utilities.schema_detector import SchemaDetector, create_schema_detector
 
-from lakeforge.ingestion.api_loader import APILoader, create_api_loader
-from lakeforge.ingestion.azure_sql_loader import AzureSQLLoader
-from lakeforge.ingestion.bigquery_loader import BigQueryLoader
-from lakeforge.ingestion.filesystem_loader import FilesystemLoader
-from lakeforge.ingestion.gcs_loader import GCSLoader
-from lakeforge.ingestion.google_sheets_loader import GoogleSheetsLoader
-from lakeforge.ingestion.jira_loader import JiraLoader
-from lakeforge.ingestion.kafka_loader import KafkaLoader
-from lakeforge.ingestion.mongodb_loader import MongoDBLoader
-from lakeforge.ingestion.mysql_loader import MySQLLoader
-from lakeforge.ingestion.oracle_loader import OracleLoader
-from lakeforge.ingestion.parquet_loader import ParquetLoader
-from lakeforge.ingestion.postgres_loader import PostgresLoader
-from lakeforge.ingestion.redshift_loader import RedshiftLoader
-from lakeforge.ingestion.s3_loader import S3Loader
-from lakeforge.ingestion.sharepoint_loader import SharePointLoader
-from lakeforge.ingestion.snowflake_loader import SnowflakeLoader
-from lakeforge.ingestion.streaming_loader import StreamingLoader, create_streaming_loader
+from lakeforge.ingestion.apis.api_loader import APILoader, create_api_loader
+from lakeforge.ingestion.databases.azure_sql_loader import AzureSQLLoader
+from lakeforge.ingestion.databases.bigquery_loader import BigQueryLoader
+from lakeforge.ingestion.files.filesystem_loader import FilesystemLoader
+from lakeforge.ingestion.cloud.gcs_loader import GCSLoader
+from lakeforge.ingestion.apis.google_sheets_loader import GoogleSheetsLoader
+from lakeforge.ingestion.apis.jira_loader import JiraLoader
+from lakeforge.ingestion.streaming.kafka_loader import KafkaLoader
+from lakeforge.ingestion.databases.mongodb_loader import MongoDBLoader
+from lakeforge.ingestion.databases.mysql_loader import MySQLLoader
+from lakeforge.ingestion.databases.oracle_loader import OracleLoader
+from lakeforge.ingestion.files.parquet_loader import ParquetLoader
+from lakeforge.ingestion.databases.postgres_loader import PostgresLoader
+from lakeforge.ingestion.databases.redshift_loader import RedshiftLoader
+from lakeforge.ingestion.cloud.s3_loader import S3Loader
+from lakeforge.ingestion.apis.sharepoint_loader import SharePointLoader
+from lakeforge.ingestion.databases.snowflake_loader import SnowflakeLoader
+from lakeforge.ingestion.streaming.streaming_loader import StreamingLoader, create_streaming_loader
+
 
 __all__ = [
     'CSVLoader',
