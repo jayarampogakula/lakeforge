@@ -99,6 +99,8 @@ def mock_config_dir(tmp_path):
         
     # Gold aggregations customer_summary
     cust_agg = {
+        "merge_strategy": "upsert",
+        "business_key": ["customer_id"],
         "source_tables": {"customers": "silver.customers_clean"},
         "group_by": ["customer_id"],
         "aggregations": [{"name": "cnt", "expression": "count(*)"}]
@@ -158,6 +160,8 @@ def test_get_gold_aggregation_config(mock_config_dir):
     agg_config = ConfigParser.get_gold_aggregation_config(str(mock_config_dir), "customer_summary", "dev")
     assert "customers" in agg_config["source_tables"]
     assert agg_config["group_by"] == ["customer_id"]
+    assert agg_config["merge_strategy"] == "upsert"
+    assert agg_config["business_key"] == ["customer_id"]
 
 def test_get_view_configs(mock_config_dir):
     view_configs = ConfigParser.get_view_configs(str(mock_config_dir), "dev")

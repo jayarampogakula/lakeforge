@@ -1,5 +1,7 @@
 {
   "description": "Customer lifetime value and metrics",
+  "merge_strategy": "upsert",
+  "business_key": ["customer_id"],
   "source_tables": {
     "customers": "silver.customers_clean",
     "transactions": "silver.transactions_clean"

@@ -1,5 +1,7 @@
 {
   "description": "Daily revenue by category",
+  "merge_strategy": "upsert",
+  "business_key": ["transaction_date", "product_category"],
   "source_tables": {
     "transactions": "silver.transactions_clean"
   },
