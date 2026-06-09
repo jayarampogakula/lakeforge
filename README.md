@@ -1,226 +1,217 @@
-## 🎉 LakeForge Phase 1 - Build Complete!
+# LakeForge
 
-I've successfully built all 7 core components of LakeForge Phase 1. Here's what was created and why each component matters:
+Enterprise-grade Data Lakehouse framework for ingesting, transforming, and managing data across multi-cloud environments.
 
----
+## Overview
 
-## **📦 What Was Built**
+LakeForge is a comprehensive framework for building production-ready data pipelines on Databricks, following the Medallion Architecture (Bronze, Silver, Gold layers).
 
-### **1. CSV Loader** (`lakeforge/ingestion/csv_loader.py`)
-**Purpose**: Intelligent CSV file ingestion with automatic handling of real-world edge cases
+## Features
 
-**Key Features**:
-* Automatic encoding detection (UTF-8, Latin-1, ISO-8859-1, etc.) using chardet
-* Schema inference or explicit schema support
-* Multiline field handling for text with line breaks
-* Corrupt record handling with PERMISSIVE mode
-* Source metadata tracking (file path, ingestion timestamp)
-* Multiple file pattern support (glob patterns)
+* **Multi-Source Ingestion**: 15+ pre-built connectors for databases, cloud storage, SaaS apps, and streaming platforms
+* **Medallion Architecture**: Bronze → Silver → Gold data layers with quality gates
+* **Schema Management**: Automatic schema detection, evolution, and validation
+* **Data Quality**: Built-in validation, profiling, and monitoring
+* **Incremental Processing**: CDC, watermark tracking, and efficient updates
+* **Cloud Native**: Supports AWS, Azure, and GCP
 
-**Why It Matters**: Real-world CSV files are messy - different encodings, multiline fields, inconsistent delimiters. This loader handles all edge cases automatically instead of failing with cryptic errors.
+## Supported Data Sources
 
----
+### Cloud Data Warehouses
+* **Snowflake** - Enterprise data warehouse with query pushdown
+* **BigQuery** - Google Cloud's serverless data warehouse
+* **Redshift** - AWS data warehouse with optimized UNLOAD
 
-### **2. Excel Loader** (`lakeforge/ingestion/excel_loader.py`)
-**Purpose**: Multi-sheet Excel processing with schema normalization
+### Relational Databases
+* **Oracle** - On-premise and cloud Oracle databases
+* **PostgreSQL** - Open-source relational database
+* **MySQL/MariaDB** - Popular open-source databases
+* **Azure SQL** - Microsoft's cloud database service
 
-**Key Features**:
-* Load single, multiple, or all sheets from Excel files
-* Normalize sheets with different schemas (auto-adds missing columns)
-* Automatic datetime handling (avoids timezone issues)
-* Empty row/column removal and string trimming
-* Sheet validation and metadata tracking
+### NoSQL & Document Stores
+* **MongoDB** - Document database with aggregation pipelines
 
-**Why It Matters**: Excel files are ubiquitous in enterprises. Business users deliver data in Excel with multiple sheets that often have different structures. This loader automatically handles schema differences and combines data intelligently.
+### Cloud Storage
+* **AWS S3** - Amazon object storage with Auto Loader support
+* **Google Cloud Storage** - GCP object storage
+* **Parquet Files** - Columnar format with schema evolution
+* **Filesystem** - DBFS, Volumes, mounted storage
 
----
+### Streaming & Messaging
+* **Apache Kafka** - Real-time event streaming platform
 
-### **3. Bronze Writer** (`lakeforge/bronze/bronze_writer.py`)
-**Purpose**: Write data to Bronze layer Delta tables with comprehensive audit capabilities
+### SaaS & Collaboration
+* **Jira** - Atlassian issue tracking and project management
+* **SharePoint** - Microsoft document management
+* **Google Sheets** - Cloud spreadsheets
 
-**Key Features**:
-* **Automatic audit columns**:
-  - `_ingestion_timestamp`: When data was loaded
-  - `_ingestion_date`: Date partition for efficient queries
-  - `_source_system`: Source identifier for lineage
-  - `_record_hash`: MD5 hash for deduplication
-* Multiple write modes: append, overwrite, merge (upsert)
-* Partitioning support for performance
-* File tracker table to prevent duplicate processing
-* Post-write OPTIMIZE and Z-ORDER for query performance
+## Quick Start
 
-**Why It Matters**: Bronze is your "single source of truth" raw data layer. Audit columns enable:
-* **Data lineage**: Where did this record come from?
-* **Debugging**: When was this loaded? Which batch?
-* **Deduplication**: Hash-based detection of duplicates
-* **File tracking**: Prevent accidentally reprocessing the same file
+### Installation
 
----
-
-### **4. DQ Engine** (`lakeforge/dq/dq_engine.py`)
-**Purpose**: Comprehensive data quality validation framework with quarantine capabilities
-
-**Key Features**:
-* **5 types of validation rules**:
-  - Null checks with threshold percentages
-  - Duplicate detection on key columns
-  - Regex pattern validation (emails, phone numbers, etc.)
-  - Range checks for numeric values
-  - Custom SQL for complex business logic
-* Quarantine failed records to separate tables for fixing
-* Generate DQ scorecards with pass/fail metrics and trends
-* Configurable severity (error, warning, info) and actions (quarantine, fail, warn)
-
-**Why It Matters**: Bad data causes downstream analytics failures. This engine:
-* **Catches issues early** before they reach production dashboards
-* **Isolates bad data** in quarantine tables for fixing and reprocessing
-* **Provides visibility** into data health trends with scorecards
-* **Enables governance** with rule-based validation that's auditable
-
----
-
-### **5. SCD Type 2** (`lakeforge/silver/scd_type2.py`)
-**Purpose**: Slowly Changing Dimension Type 2 for maintaining complete historical audit trails
-
-**Key Features**:
-* Hash-based change detection (efficient comparison)
-* Effective date tracking (start and end dates)
-* Current record flagging (`is_current` boolean)
-* Time travel queries (get records as of specific date)
-* Record history retrieval for a business key
-* Automatic initial load handling
-
-**Why It Matters**: Businesses need to answer historical questions:
-* "What was the customer's address on January 1, 2023?"
-* "Show me all price changes for product X over the last year"
-* **Compliance and auditing**: Required for regulatory requirements
-* **Accurate reporting**: Point-in-time analytics must reflect historical states
-
----
-
-### **6. YAML Config Parser** (`lakeforge/metadata/config_parser.py`)
-**Purpose**: Enable configuration-driven pipeline execution with validation
-
-**Key Features**:
-* Parse and validate ingestion configurations
-* Parse and validate DQ rules from YAML
-* Strongly-typed dataclass configs (type safety)
-* Configuration validation with detailed error messages
-* Support for metadata, tags, and descriptions
-
-**Sample Configs Created**:
-* `configs/ingestion/sample_csv_ingestion.yaml`
-* `configs/dq/sample_dq_rules.yaml`
-* `configs/pipelines/sample_scd_type2.yaml`
-
-**Why It Matters**:
-* **Decouples configuration from code**: Change pipelines without code changes
-* **Empowers non-developers**: Business analysts can modify configs
-* **Version control**: Track pipeline configuration changes over time
-* **Validation**: Catch configuration errors before runtime
-
----
-
-### **7. Structured Logger** (`lakeforge/observability/logger.py`)
-**Purpose**: Structured, contextual logging for production observability
-
-**Key Features**:
-* Structured logging with timestamps
-* Context tracking for correlation (pipeline, run_id, etc.)
-* Multiple log levels (DEBUG, INFO, WARNING, ERROR, CRITICAL)
-* Console and file output support
-* Operation tracking with metadata (duration, row counts, etc.)
-* Exception logging with stack traces
-
-**Why It Matters**: Production debugging is impossible without detailed logs:
-* **Structured logs** enable log aggregation and analysis in monitoring tools
-* **Context tracking** lets you trace a single request across components
-* **Operation metrics** support performance monitoring and SLA tracking
-* **Consistent format** improves troubleshooting efficiency
-
----
-
-## **🔄 How They Work Together**
-
-### **End-to-End Data Flow**:
-
-```
-1. SOURCE FILES (CSV/Excel)
-          ↓
-2. INGESTION (CSV/Excel Loaders)
-   - Auto-detect encoding/schema
-   - Add source metadata
-          ↓
-3. BRONZE LAYER (Bronze Writer)
-   - Add audit columns
-   - Write to Delta table
-   - Track file ingestion
-          ↓
-4. DATA QUALITY (DQ Engine)
-   - Run validation rules
-   - Quarantine failed records
-   - Generate scorecard
-          ↓
-5. SILVER LAYER (SCD Type 2)
-   - Detect changes (hash-based)
-   - Track history
-   - Update dimensions
+```bash
+git clone https://github.com/yourorg/lakeforge.git
+cd lakeforge
+pip install -e .
 ```
 
----
-
-## **✨ Production-Ready Features**
-
-* ✅ **Audit columns** for lineage and debugging
-* ✅ **File tracking** to prevent duplicate processing
-* ✅ **Quarantine tables** for isolating bad data
-* ✅ **SCD Type 2** for complete historical tracking
-* ✅ **Structured logging** for production observability
-* ✅ **Config validation** to catch errors before runtime
-* ✅ **Error handling** for graceful failure recovery
-* ✅ **OPTIMIZE/Z-ORDER** for query performance
-* ✅ **Partitioning** for scalable data organization
-* ✅ **Delta Lake ACID** for transactional reliability
-
----
-
-## **📚 Documentation & Examples**
-
-**Complete Guide**: docs/getting-started/PHASE1_GUIDE.md
-
-**Example Usage**: notebooks/demo/phase1_complete_example.py
-
-**Sample Configs**:
-* configs/ingestion/sample_csv_ingestion.yaml
-* configs/dq/sample_dq_rules.yaml
-* configs/pipelines/sample_scd_type2.yaml
-
----
-
-## **🚀 Quick Start Example**
+### Basic Usage
 
 ```python
-from lakeforge.ingestion import create_csv_loader
-from lakeforge.bronze import create_bronze_writer
-from lakeforge.dq import create_dq_engine
-from lakeforge import get_logger
+from lakeforge.ingestion import OracleLoader
+from pyspark.sql import SparkSession
 
-# Initialize
-logger = get_logger("my_pipeline")
-csv_loader = create_csv_loader(spark)
-bronze_writer = create_bronze_writer(spark)
-dq_engine = create_dq_engine(spark)
+# Initialize Spark
+spark = SparkSession.builder.appName("LakeForge").getOrCreate()
 
-# Load CSV
-df = csv_loader.load_csv_with_metadata("/path/to/sales.csv")
-
-# Write to Bronze
-bronze_writer.write_to_bronze(
-    df, "sales_raw", "bronze", "sales",
-    add_audit_columns=True
+# Load from Oracle
+loader = OracleLoader(
+    spark=spark,
+    host="oracle.company.com",
+    port=1521,
+    service_name="PROD",
+    user="etl_user",
+    password=dbutils.secrets.get("prod", "oracle-password")
 )
 
-# Validate quality
-results = dq_engine.validate_dataframe(df, rules=[...])
-logger.info("DQ check complete", passed=results["rules_passed"])
+# Ingest to Bronze layer
+df = loader.load_table("SALES.ORDERS")
+df.write.format("delta") \
+    .mode("overwrite") \
+    .partitionBy("order_date") \
+    .save("/mnt/bronze/orders")
 ```
+
+### Streaming Example
+
+```python
+from lakeforge.ingestion import KafkaLoader
+
+loader = KafkaLoader(spark=spark)
+
+# Stream from Kafka
+stream_df = loader.load_stream(
+    kafka_bootstrap_servers="kafka:9092",
+    topic="orders",
+    value_format="json"
+)
+
+# Write to Bronze with checkpointing
+query = stream_df.writeStream \
+    .format("delta") \
+    .outputMode("append") \
+    .option("checkpointLocation", "/mnt/checkpoints/orders") \
+    .start("/mnt/bronze/streaming_orders")
+```
+
+## Project Structure
+
+```
+lakeforge/
+├── lakeforge/                 # Core Python package
+│   ├── ingestion/            # Data ingestion modules
+│   │   ├── kafka_loader.py
+│   │   ├── oracle_loader.py
+│   │   ├── s3_loader.py
+│   │   └── ...
+│   ├── transformation/       # Data transformation logic
+│   ├── validation/          # Data quality validation
+│   └── utils/              # Utility functions
+├── docs/                    # Documentation
+│   ├── ingestion/          # Ingestion guides per source
+│   │   ├── README.md       # Ingestion overview
+│   │   ├── kafka.md
+│   │   ├── oracle.md
+│   │   └── ...
+│   └── architecture/       # Architecture documentation
+├── examples/               # Example notebooks and pipelines
+├── tests/                 # Unit and integration tests
+└── configs/              # Configuration templates
+
+```
+
+## Documentation
+
+Comprehensive documentation is available in the `docs/` directory:
+
+* **[Ingestion Guide](docs/ingestion/README.md)** - Complete guide for all data sources
+* **Architecture Guide** - Medallion architecture patterns
+* **Best Practices** - Production deployment guidelines
+* **API Reference** - Complete API documentation
+
+### Source-Specific Guides
+
+Detailed configuration and examples for each data source:
+
+* [Kafka Streaming](docs/ingestion/kafka.md)
+* [Oracle Database](docs/ingestion/oracle.md)
+* [AWS Redshift](docs/ingestion/redshift.md)
+* [Google BigQuery](docs/ingestion/bigquery.md)
+* [Snowflake](docs/ingestion/snowflake.md)
+* [AWS S3](docs/ingestion/s3.md)
+* [Jira](docs/ingestion/jira.md)
+* [SharePoint](docs/ingestion/sharepoint.md)
+* [And more...](docs/ingestion/)
+
+## Medallion Architecture
+
+LakeForge implements the industry-standard Medallion Architecture:
+
+### Bronze Layer (Raw)
+* Raw data ingestion from sources
+* Minimal transformation
+* Preserves original data lineage
+* Append-only or full snapshots
+
+### Silver Layer (Cleansed)
+* Validated and cleansed data
+* Schema enforcement
+* Deduplicated records
+* Type casting and normalization
+
+### Gold Layer (Curated)
+* Business-level aggregations
+* Star/snowflake schemas
+* Ready for analytics and reporting
+* Optimized for query performance
+
+## Configuration Management
+
+Store credentials securely using Databricks Secrets:
+
+```python
+# Create secret scope
+databricks secrets create-scope --scope production
+
+# Add secrets
+databricks secrets put --scope production --key oracle-password
+
+# Use in code
+password = dbutils.secrets.get(scope="production", key="oracle-password")
+```
+
+## Contributing
+
+We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+
+## License
+
+This project is licensed under the MIT License - see [LICENSE](LICENSE) file for details.
+
+## Support
+
+* **Documentation**: [docs/](docs/)
+* **Issues**: GitHub Issues
+* **Discussions**: GitHub Discussions
+
+## Roadmap
+
+* [ ] Additional connectors (Salesforce, ServiceNow, SAP)
+* [ ] Data catalog integration
+* [ ] Enhanced monitoring and alerting
+* [ ] Auto-scaling recommendations
+* [ ] Cost optimization tools
+
+---
+
+Built with ❤️ for the Data Engineering community

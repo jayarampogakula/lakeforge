@@ -1,12 +1,62 @@
-# LakeForge Phase 1 Dependencies
+# Core Dependencies
+pyspark>=3.5.0
+delta-spark>=3.0.0
 
-# Core Spark and Delta
-pyspark>=3.3.0
-delta-spark>=2.3.0
+# Database Connectors
+# Oracle
+# cx_Oracle>=8.3.0
+# ojdbc8 (download separately from Oracle)
 
-# Data Processing
-pandas>=1.5.0
-openpyxl>=3.0.0  # Excel support
-chardet>=5.0.0   # Encoding detection
+# PostgreSQL
+psycopg2-binary>=2.9.0
 
-# Note: JSON support is built into Python, no external dependency needed
+# MySQL
+PyMySQL>=1.0.0
+
+# MongoDB
+pymongo>=4.0.0
+
+# Cloud Connectors
+# AWS
+boto3>=1.26.0
+s3fs>=2023.1.0
+
+# Google Cloud
+google-cloud-bigquery>=3.10.0
+google-cloud-storage>=2.10.0
+google-auth>=2.20.0
+gspread>=5.10.0
+google-auth-oauthlib>=1.0.0
+
+# Azure
+azure-storage-blob>=12.16.0
+azure-identity>=1.13.0
+
+# SaaS APIs
+requests>=2.31.0
+requests-oauthlib>=1.3.1
+
+# Spark Connectors (install as cluster libraries)
+# spark-bigquery-with-dependencies_2.12:0.32.0
+# spark-snowflake_2.12:2.12.0-spark_3.4
+# spark-redshift_2.12:5.0.3
+# mongo-spark-connector_2.12:10.2.0
+
+# Data Quality
+great-expectations>=0.17.0
+pandera>=0.15.0
+
+# Utilities
+python-dotenv>=1.0.0
+pyyaml>=6.0
+jsonschema>=4.17.0
+
+# Logging & Monitoring
+loguru>=0.7.0
+
+# Development
+pytest>=7.4.0
+pytest-cov>=4.1.0
+black>=23.0.0
+flake8>=6.0.0
+mypy>=1.4.0

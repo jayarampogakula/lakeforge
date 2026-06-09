@@ -1,0 +1,7 @@
+{
+  "schema_drift_detection": {
+    "enabled": true,
+    "auto_evolve": true,
+    "log_table": "monitoring.schema_drift_log"
+  }
+}

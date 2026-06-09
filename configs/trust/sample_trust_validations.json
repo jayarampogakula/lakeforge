@@ -1,0 +1,40 @@
+{
+  "trust_validations": [
+    {
+      "name": "row_count_validation",
+      "type": "row_count",
+      "description": "Validate row counts between source and target",
+      "params": {
+        "tolerance_percent": 5.0,
+        "expected_ratio": 1.0
+      }
+    },
+    {
+      "name": "join_integrity_check",
+      "type": "join_integrity",
+      "description": "Validate join integrity",
+      "params": {
+        "join_keys": [
+          "customer_id"
+        ],
+        "join_type": "inner",
+        "expected_match_percent": 95.0
+      }
+    },
+    {
+      "name": "duplicate_explosion_check",
+      "type": "duplicate_explosion",
+      "params": {
+        "key_columns": [
+          "order_id"
+        ],
+        "max_explosion_ratio": 1.5
+      }
+    }
+  ],
+  "actions": {
+    "on_failure": "log_and_continue",
+    "quarantine_failures": true,
+    "send_alerts": true
+  }
+}
