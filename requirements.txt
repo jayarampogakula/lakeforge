@@ -50,6 +50,7 @@ pandera>=0.15.0
 python-dotenv>=1.0.0
 pyyaml>=6.0
 jsonschema>=4.17.0
+chardet>=5.0.0
 
 # Logging & Monitoring
 loguru>=0.7.0
