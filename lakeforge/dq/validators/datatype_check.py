@@ -1,12 +1,16 @@
 """
 LakeForge Datatype Check Validator
 """
-from pyspark.sql import DataFrame
+try:
+    from pyspark.sql import DataFrame
+except ImportError:
+    DataFrame = object
 from typing import Dict, Any
 
 class DatatypeValidator:
     """
     Validator to check that a column has the expected datatype in a DataFrame.
+    Supports SQL and Spark type family matching (e.g. 'int' matches IntegerType and LongType/BigInt).
     """
     
     @staticmethod
@@ -39,25 +43,41 @@ class DatatypeValidator:
         actual_type_str = str(actual_type).lower()
         expected_type_lower = expected_type.lower()
         
-        # Normalization map
-        type_map = {
-            "int": "integer",
-            "integer": "integer",
-            "long": "long",
-            "string": "string",
-            "double": "double",
-            "float": "float",
-            "date": "date",
-            "timestamp": "timestamp",
-            "boolean": "boolean"
+        # Family mapping for cross-platform SQL/Spark type compatibility
+        type_families = {
+            "integer": {"int", "integer", "long", "bigint", "short", "smallint", "byte", "tinyint"},
+            "float": {"double", "float", "real"},
+            "decimal": {"decimal", "numeric"},
+            "string": {"string", "varchar", "char", "text"},
+            "timestamp": {"timestamp", "datetime", "timestampntz"},
+            "date": {"date"},
+            "boolean": {"boolean", "bool"}
         }
-        
-        norm_expected = type_map.get(expected_type_lower, expected_type_lower)
-        
+
+        # Resolve family of expected type
+        expected_family = None
+        for fam, aliases in type_families.items():
+            if expected_type_lower in aliases:
+                expected_family = fam
+                break
+        if not expected_family:
+            expected_family = expected_type_lower
+
+        # Resolve family of actual type
+        actual_family = None
+        for fam, aliases in type_families.items():
+            if any(alias in actual_type_str for alias in aliases):
+                actual_family = fam
+                break
+        if not actual_family:
+            actual_family = actual_type_str
+
         passed = False
-        if "decimal" in norm_expected and "decimal" in actual_type_str:
+        if "decimal" in expected_type_lower and "decimal" in actual_type_str:
             passed = True
-        elif norm_expected in actual_type_str:
+        elif expected_family == actual_family:
+            passed = True
+        elif expected_type_lower in actual_type_str:
             passed = True
             
         return {
