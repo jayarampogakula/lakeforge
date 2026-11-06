@@ -1,0 +1,57 @@
+[build-system]
+requires = ["setuptools>=61.0.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "lakeforge"
+version = "1.0.0"
+description = "Enterprise Databricks Medallion ETL, Data Quality, and Governance Framework"
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "Apache-2.0" }
+authors = [
+    { name = "LakeForge Contributors" }
+]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: Apache Software License",
+    "Operating System :: OS Independent",
+    "Topic :: Database",
+    "Topic :: Software Development :: Libraries :: Application Frameworks"
+]
+dependencies = [
+    "pyspark>=3.5.0",
+    "delta-spark>=3.0.0",
+    "chardet>=5.0.0",
+    "openpyxl>=3.1.0",
+    "requests>=2.31.0"
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4.0",
+    "pytest-cov>=4.1.0",
+    "black>=23.0.0",
+    "flake8>=6.0.0",
+    "mypy>=1.4.0"
+]
+all = [
+    "psycopg2-binary>=2.9.0",
+    "PyMySQL>=1.0.0",
+    "pymongo>=4.0.0",
+    "boto3>=1.26.0",
+    "google-cloud-bigquery>=3.10.0",
+    "azure-storage-blob>=12.16.0"
+]
+
+[project.scripts]
+lakeforge = "lakeforge.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["lakeforge*"]
+exclude = ["tests*", "docs*", "deployment*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests/unit_tests"]
+python_files = ["test_*.py"]

@@ -95,15 +95,17 @@ class DQRule:
     severity: str = "error"  # error, warning, info
 
     def __post_init__(self):
-        if not self.rule_type and self.validation_type:
-            val_map = {
-                "not_null": "null_check",
-                "unique": "duplicate_check",
-                "regex": "regex_check",
-                "range": "range_check",
-                "custom_sql": "custom_sql",
-                "datatype": "datatype_check"
-            }
+        val_map = {
+            "not_null": "null_check",
+            "unique": "duplicate_check",
+            "regex": "regex_check",
+            "range": "range_check",
+            "custom_sql": "custom_sql",
+            "datatype": "datatype_check"
+        }
+        if self.rule_type in val_map:
+            self.rule_type = val_map[self.rule_type]
+        elif not self.rule_type and self.validation_type:
             self.rule_type = val_map.get(self.validation_type, self.validation_type)
 
 
@@ -560,7 +562,14 @@ class ConfigParser:
             errors.append("source_name is required")
         if not config.source_type:
             errors.append("source_type is required")
-        if config.source_type not in ['csv', 'excel', 'json', 'api', 'sql', 'parquet']:
+        valid_source_types = {
+            'csv', 'tsv', 'psv', 'json', 'jsonl', 'ndjson', 'parquet', 'avro', 'orc',
+            'xml', 'excel', 'xlsx', 'xls', 'xlsm', 'delta', 'txt', 'text', 'fixed_width',
+            'sql', 'postgres', 'postgresql', 'mysql', 'oracle', 'azure_sql', 'bigquery',
+            'snowflake', 'redshift', 'mongodb', 'api', 'rest', 'jira', 'sharepoint', 'google_sheets',
+            'filesystem', 's3', 'gcs', 'adls', 'abfss'
+        }
+        if config.source_type.lower() not in valid_source_types:
             errors.append(f"Invalid source_type: {config.source_type}")
         if not config.source_path:
             errors.append("source_path is required")
@@ -591,9 +600,12 @@ class ConfigParser:
             if not rule.rule_type:
                 errors.append(f"Rule {idx}: rule_type is required")
                 
-            valid_rule_types = ['null_check', 'duplicate_check', 'regex_check', 
-                               'range_check', 'datatype_check', 'custom_sql', 'referential_integrity', 
-                               'row_count_threshold', 'null_rate_threshold']
+            valid_rule_types = [
+                'null_check', 'duplicate_check', 'regex_check', 'range_check',
+                'datatype_check', 'custom_sql', 'referential_integrity',
+                'row_count_threshold', 'null_rate_threshold', 'allowed_values',
+                'not_null', 'unique', 'regex', 'range', 'datatype'
+            ]
             if rule.rule_type not in valid_rule_types:
                 errors.append(f"Rule {idx}: Invalid rule_type: {rule.rule_type}")
             if rule.action not in ['quarantine', 'fail', 'warn', 'flag', 'alert']:

@@ -112,7 +112,7 @@ resource "databricks_job" "medallion_pipeline" {
     job_cluster_key = "lakeforge_job_compute"
 
     notebook_task {
-      notebook_path = "/lakeforge/pipelines/Silver_Generic_Pipeline"
+      notebook_path = "/lakeforge/pipelines/SILVER_Transformation_Pipeline"
       base_parameters = {
         config_dir      = "/Workspace/Users/jayarampogakula@gmail.com/lakeforge/configs"
         source_table    = "customers"
@@ -131,7 +131,7 @@ resource "databricks_job" "medallion_pipeline" {
     job_cluster_key = "lakeforge_job_compute"
 
     notebook_task {
-      notebook_path = "/lakeforge/pipelines/Silver_Generic_Pipeline"
+      notebook_path = "/lakeforge/pipelines/SILVER_Transformation_Pipeline"
       base_parameters = {
         config_dir      = "/Workspace/Users/jayarampogakula@gmail.com/lakeforge/configs"
         source_table    = "transactions"

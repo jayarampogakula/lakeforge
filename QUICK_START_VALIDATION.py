@@ -106,7 +106,7 @@ print(f"✅ Reports directory: {REPORTS_DIR}")
 # MAGIC 2. **BRONZE_Ingestion_Pipeline** (5 min)
 # MAGIC    * CSV → Bronze Delta tables
 # MAGIC    * Expected Trust Score: 90-95%
-# MAGIC    * Location: `/lakeforge/pipelines/BRONZE_Ingestion_Pipeline`
+# MAGIC    * Location: `/lakeforge/pipelines/Bronze_Generic_Pipeline`
 # MAGIC    
 # MAGIC 3. **SILVER_Transformation_Pipeline** (10 min) ⭐
 # MAGIC    * Bronze → Silver with JOIN VALIDATION
