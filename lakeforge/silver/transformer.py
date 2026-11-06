@@ -14,7 +14,50 @@ class SilverTransformer:
     """
     
     @staticmethod
-    def transform(df: DataFrame, configs: List[Dict[str, Any]]) -> DataFrame:
+    def enforce_schema(df: DataFrame, schema_def: Any) -> DataFrame:
+        """
+        Enforce an explicit schema and datatypes on the DataFrame.
+
+        Supports:
+          1. DDL schema string: "id INT, name STRING, created_at TIMESTAMP"
+          2. Dict mapping: {"id": "int", "name": "string", "created_at": "timestamp"}
+        """
+        if not schema_def:
+            return df
+
+        if isinstance(schema_def, dict):
+            select_exprs = [col(c).cast(t).alias(c) for c, t in schema_def.items() if c in df.columns]
+            if select_exprs:
+                return df.select(*select_exprs)
+            return df
+
+        elif isinstance(schema_def, str):
+            # Parse Spark SQL DDL string
+            try:
+                from pyspark.sql.types import _parse_datatype_string, StructType
+                parsed = _parse_datatype_string(schema_def)
+                if isinstance(parsed, StructType):
+                    select_exprs = [col(f.name).cast(f.dataType).alias(f.name) for f in parsed.fields if f.name in df.columns]
+                    if select_exprs:
+                        return df.select(*select_exprs)
+            except Exception:
+                pass
+
+            # Fallback for simple comma-separated "name type" pairs
+            select_exprs = []
+            for field_str in schema_def.split(","):
+                parts = field_str.strip().split()
+                if len(parts) >= 2:
+                    c, t = parts[0], parts[1]
+                    if c in df.columns:
+                        select_exprs.append(col(c).cast(t).alias(c))
+            if select_exprs:
+                return df.select(*select_exprs)
+
+        return df
+
+    @staticmethod
+    def transform(df: DataFrame, configs: List[Dict[str, Any]], schema: Any = None) -> DataFrame:
         """
         Apply configuration-driven transformations to DataFrame.
         
@@ -106,5 +149,12 @@ class SilverTransformer:
                 module = config.get("module")
                 func = config.get("function")
                 transformed_df = DynamicRunner.load_and_execute(module, func, transformed_df)
-                
+
+            elif trans_type in ["enforce_schema", "schema"]:
+                schema_def = config.get("schema") or config.get("columns")
+                transformed_df = SilverTransformer.enforce_schema(transformed_df, schema_def)
+
+        if schema:
+            transformed_df = SilverTransformer.enforce_schema(transformed_df, schema)
+
         return transformed_df

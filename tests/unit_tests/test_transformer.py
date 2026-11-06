@@ -186,3 +186,17 @@ def test_silver_transformer_select_and_cast(spark):
     assert "extra" not in cols
     assert "IntegerType" in schema_dict["id"]
     assert "DoubleType" in schema_dict["val"]
+
+def test_silver_transformer_enforce_ddl_schema(spark):
+    data = [Row(id="1", val="100.5", tag="drop_this")]
+    df = spark.createDataFrame(data)
+
+    # Test DDL string schema enforcement
+    ddl = "id INT, val DOUBLE"
+    transformed_df = SilverTransformer.enforce_schema(df, ddl)
+    cols = transformed_df.columns
+    schema_dict = {f.name: str(f.dataType) for f in transformed_df.schema.fields}
+
+    assert "tag" not in cols
+    assert "IntegerType" in schema_dict["id"]
+    assert "DoubleType" in schema_dict["val"]
