@@ -1,0 +1,19 @@
+{
+  "source_name": "sales",
+  "rules": [
+    {
+      "rule_name": "sale_id_not_null",
+      "rule_type": "null_check",
+      "column": "sale_id",
+      "severity": "fail"
+    },
+    {
+      "rule_name": "amount_positive",
+      "rule_type": "range_check",
+      "column": "amount",
+      "min_value": 0.01,
+      "severity": "fail"
+    }
+  ],
+  "action_on_failure": "quarantine"
+}

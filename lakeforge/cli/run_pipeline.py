@@ -1,19 +1,21 @@
 """
 LakeForge CLI - Pipeline Runner
-Dispatches and runs LakeForge pipeline stages (Bronze, Silver, Gold).
+Dispatches and runs LakeForge pipeline stages (Bronze, Silver, Gold, Views, Governance).
+Supports multi-tenant client scoping and on-demand governance/views execution.
 """
 import sys
 from pathlib import Path
 from typing import Optional
 
-from lakeforge.metadata.config_parser import ConfigParser
+from lakeforge.metadata.config_parser import ConfigParser, load_view_configs
+from lakeforge.governance.governance_engine import GovernanceEngine
 
 
-def run_bronze(config_dir: str, pipeline_name: str, environment: str = "dev"):
+def run_bronze(config_dir: str, pipeline_name: str, environment: str = "dev", client_id: Optional[str] = None):
     """Execute Bronze ingestion."""
-    print(f"Loading Bronze configuration for: {pipeline_name} (env={environment})...")
-    ing_cfg = ConfigParser.get_ingestion_config(config_dir, pipeline_name, environment)
-    dq_cfg = ConfigParser.get_dq_config(config_dir, pipeline_name, environment)
+    print(f"Loading Bronze configuration for: {pipeline_name} (client={client_id or 'global'}, env={environment})...")
+    ing_cfg = ConfigParser.get_ingestion_config(config_dir, pipeline_name, environment, client_id=client_id)
+    dq_cfg = ConfigParser.get_dq_config(config_dir, pipeline_name, environment, client_id=client_id)
 
     print(f"Target: {ing_cfg.target_catalog}.{ing_cfg.target_schema}.{ing_cfg.target_table}")
     print(f"Format: {ing_cfg.file_format} | Mode: {ing_cfg.mode}")
@@ -52,11 +54,11 @@ def run_bronze(config_dir: str, pipeline_name: str, environment: str = "dev"):
         print("[NOTE] Local PySpark runtime not available. In Databricks, run via the Bronze_Generic_Pipeline notebook.")
 
 
-def run_silver(config_dir: str, target_table: str, source_table: str = None, environment: str = "dev", scd2: bool = False):
+def run_silver(config_dir: str, target_table: str, source_table: str = None, environment: str = "dev", scd2: bool = False, client_id: Optional[str] = None):
     """Execute Silver transformation."""
     source_tbl = source_table or target_table.replace("_clean", "")
-    print(f"Loading Silver configuration for: {target_table} (source={source_tbl}, env={environment})...")
-    trans_cfg = ConfigParser.get_silver_transformation_config(config_dir, target_table, environment)
+    print(f"Loading Silver configuration for: {target_table} (client={client_id or 'global'}, source={source_tbl}, env={environment})...")
+    trans_cfg = ConfigParser.get_silver_transformation_config(config_dir, target_table, environment, client_id=client_id)
     print(f"Steps: {len(trans_cfg.get('transformations', []))} transformation(s)")
 
     try:
@@ -71,7 +73,7 @@ def run_silver(config_dir: str, target_table: str, source_table: str = None, env
         df_src = spark.table(full_src)
         df_transformed = SilverTransformer.transform(df_src, trans_cfg.get("transformations", []))
 
-        ing_cfg = ConfigParser.get_ingestion_config(config_dir, source_tbl, environment)
+        ing_cfg = ConfigParser.get_ingestion_config(config_dir, source_tbl, environment, client_id=client_id)
         b_keys = ing_cfg.business_key
 
         if scd2:
@@ -85,10 +87,10 @@ def run_silver(config_dir: str, target_table: str, source_table: str = None, env
         print("[NOTE] Local PySpark runtime not available. In Databricks, run via the SILVER_Transformation_Pipeline notebook.")
 
 
-def run_gold(config_dir: str, target_table: str, environment: str = "dev"):
+def run_gold(config_dir: str, target_table: str, environment: str = "dev", client_id: Optional[str] = None):
     """Execute Gold aggregation."""
-    print(f"Loading Gold aggregation configuration for: {target_table} (env={environment})...")
-    agg_cfg = ConfigParser.get_gold_aggregation_config(config_dir, target_table, environment)
+    print(f"Loading Gold aggregation configuration for: {target_table} (client={client_id or 'global'}, env={environment})...")
+    agg_cfg = ConfigParser.get_gold_aggregation_config(config_dir, target_table, environment, client_id=client_id)
     print(f"Sources: {agg_cfg.get('source_tables')}")
     print(f"Aggregations: {len(agg_cfg.get('aggregations', []))}")
 
@@ -118,25 +120,77 @@ def run_gold(config_dir: str, target_table: str, environment: str = "dev"):
         print("[NOTE] Local PySpark runtime not available. In Databricks, run via the GOLD_Aggregation_Pipeline notebook.")
 
 
+def run_views(config_dir: str, view_name: Optional[str] = None, environment: str = "dev", client_id: Optional[str] = None):
+    """Execute on-demand View creation."""
+    print(f"Loading Views configuration (client={client_id or 'global'}, env={environment})...")
+    env_cfg = ConfigParser.get_environment_config(config_dir, environment)
+    view_configs = ConfigParser.get_view_configs(config_dir, environment, client_id=client_id)
+    if view_name:
+        view_configs = [vc for vc in view_configs if vc.view_name == view_name]
+
+    print(f"Loaded {len(view_configs)} view definition(s):")
+    for vc in view_configs:
+        print(f"  * {vc.catalog}.{vc.schema}.{vc.view_name} (type: {vc.definition_type})")
+
+    try:
+        from pyspark.sql import SparkSession
+        from lakeforge.views.view_manager import create_view_manager
+
+        spark = SparkSession.builder.getOrCreate()
+        manager = create_view_manager(spark, env_cfg)
+        manager.create_views(view_configs)
+        print("Views created successfully!")
+    except ImportError:
+        print("[NOTE] Local PySpark runtime not available. In Databricks, run via the VIEWS_Creation_Pipeline notebook.")
+
+
+def run_governance(config_dir: str, environment: str = "dev", dry_run: bool = False, client_id: Optional[str] = None, target_catalog: Optional[str] = None):
+    """Execute on-demand Governance access control reconciliation."""
+    print(f"Loading Governance configuration (client={client_id or 'global'}, env={environment}, dry_run={dry_run})...")
+    engine = GovernanceEngine()
+    result = engine.reconcile_permissions(
+        config_path_or_dir=config_dir,
+        environment=environment,
+        dry_run=dry_run,
+        target_catalog=target_catalog,
+        client_id=client_id
+    )
+    print(f"Reconciliation Summary: {result['executed']} executed / {result['total_statements']} total grants")
+    for stmt in result["statements"]:
+        print(f"  * {stmt}")
+
+
 def main(argv=None):
     if argv is None:
         argv = sys.argv[1:]
     import argparse
     parser = argparse.ArgumentParser(description="Run a LakeForge pipeline stage.")
-    parser.add_argument("--layer", choices=["bronze", "silver", "gold"], required=True, help="Medallion layer to run")
-    parser.add_argument("--name", required=True, help="Source name (Bronze) or target table name (Silver/Gold)")
+    parser.add_argument("--layer", choices=["bronze", "silver", "gold", "views", "governance"], required=True, help="Medallion layer or on-demand stage")
+    parser.add_argument("--name", default=None, help="Source name (Bronze) or target table (Silver/Gold) or view name (Views)")
     parser.add_argument("--source", default=None, help="Source table name for Silver layer (optional)")
     parser.add_argument("--env", default="dev", help="Environment (default: dev)")
+    parser.add_argument("--client", default=None, help="Client ID / Tenant (optional)")
     parser.add_argument("--config-dir", default="configs", help="Configuration directory (default: configs)")
     parser.add_argument("--scd2", action="store_true", help="Use SCD Type 2 for Silver layer")
+    parser.add_argument("--dry-run", action="store_true", help="Dry run mode for governance/audit")
     args = parser.parse_args(argv)
 
     if args.layer == "bronze":
-        run_bronze(args.config_dir, args.name, args.env)
+        if not args.name:
+            parser.error("--name is required for bronze layer")
+        run_bronze(args.config_dir, args.name, args.env, client_id=args.client)
     elif args.layer == "silver":
-        run_silver(args.config_dir, args.name, args.source, args.env, args.scd2)
+        if not args.name:
+            parser.error("--name is required for silver layer")
+        run_silver(args.config_dir, args.name, args.source, args.env, args.scd2, client_id=args.client)
     elif args.layer == "gold":
-        run_gold(args.config_dir, args.name, args.env)
+        if not args.name:
+            parser.error("--name is required for gold layer")
+        run_gold(args.config_dir, args.name, args.env, client_id=args.client)
+    elif args.layer == "views":
+        run_views(args.config_dir, args.name, args.env, client_id=args.client)
+    elif args.layer == "governance":
+        run_governance(args.config_dir, args.env, dry_run=args.dry_run, client_id=args.client)
 
 
 if __name__ == "__main__":

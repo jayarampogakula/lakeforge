@@ -2,10 +2,16 @@
 
 __version__ = "1.0.0"
 
-# Metadata, observability, and reporting are available without PySpark
+# Metadata, observability, governance, and reporting are available without PySpark
 from .metadata.config_parser import ConfigParser, load_ingestion_config, load_dq_config, load_view_configs
 from .reporting.reporting import ReportGenerator, create_report_generator
 from .observability.logger import LakeForgeLogger
+from .governance.governance_engine import (
+    GovernanceEngine,
+    create_governance_engine,
+    AccessControlConfig,
+    PrincipalPrivilege
+)
 
 __all__ = [
     "ConfigParser",
@@ -15,6 +21,10 @@ __all__ = [
     "ReportGenerator",
     "create_report_generator",
     "LakeForgeLogger",
+    "GovernanceEngine",
+    "create_governance_engine",
+    "AccessControlConfig",
+    "PrincipalPrivilege",
 ]
 
 # Spark-dependent components

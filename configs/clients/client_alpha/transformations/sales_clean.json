@@ -1,0 +1,14 @@
+{
+  "source_table": "sales",
+  "target_table": "sales_clean",
+  "deduplication": {
+    "key_columns": ["sale_id"],
+    "order_column": "sale_date",
+    "order_desc": true
+  },
+  "schema": "sale_id STRING, customer_id STRING, amount DOUBLE, sale_date TIMESTAMP, region STRING",
+  "columns": {
+    "sale_id": "trim(sale_id)",
+    "region": "upper(coalesce(region, 'UNKNOWN'))"
+  }
+}

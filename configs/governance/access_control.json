@@ -1,0 +1,86 @@
+{
+  "version": "1.0.0",
+  "description": "Centralized Unity Catalog Access Control and Governance Configuration for LakeForge",
+  "roles": {
+    "data_engineers": {
+      "description": "Full read/write permissions for pipeline orchestration and data engineering",
+      "principals": [
+        "data_engineers_group",
+        "sp_lakeforge_orchestration"
+      ],
+      "catalogs": {
+        "lakeforge_dev": ["USE CATALOG"]
+      },
+      "schemas": {
+        "lakeforge_dev.bronze": ["USE SCHEMA", "SELECT", "MODIFY", "CREATE TABLE"],
+        "lakeforge_dev.silver": ["USE SCHEMA", "SELECT", "MODIFY", "CREATE TABLE"],
+        "lakeforge_dev.gold": ["USE SCHEMA", "SELECT", "MODIFY", "CREATE TABLE"]
+      }
+    },
+    "business_analysts": {
+      "description": "Read-only access to Silver cleansed tables and Gold aggregated data marts",
+      "principals": [
+        "business_analysts_group"
+      ],
+      "catalogs": {
+        "lakeforge_dev": ["USE CATALOG"]
+      },
+      "schemas": {
+        "lakeforge_dev.silver": ["USE SCHEMA"],
+        "lakeforge_dev.gold": ["USE SCHEMA", "SELECT"]
+      },
+      "tables": {
+        "lakeforge_dev.silver.customers_clean": ["SELECT"],
+        "lakeforge_dev.silver.transactions_clean": ["SELECT"]
+      }
+    },
+    "executive_viewers": {
+      "description": "Access to Gold reporting views and high-level summaries only",
+      "principals": [
+        "executive_reporting_group"
+      ],
+      "catalogs": {
+        "lakeforge_dev": ["USE CATALOG"]
+      },
+      "schemas": {
+        "lakeforge_dev.gold": ["USE SCHEMA"]
+      },
+      "views": {
+        "lakeforge_dev.gold.v_high_value_transactions": ["SELECT"],
+        "lakeforge_dev.gold.v_active_customers": ["SELECT"]
+      }
+    },
+    "compliance_auditors": {
+      "description": "Read access across all layers for compliance, trust scoring, and lineage verification",
+      "principals": [
+        "compliance_auditors_group"
+      ],
+      "catalogs": {
+        "lakeforge_dev": ["USE CATALOG"]
+      },
+      "schemas": {
+        "lakeforge_dev.bronze": ["USE SCHEMA", "SELECT"],
+        "lakeforge_dev.silver": ["USE SCHEMA", "SELECT"],
+        "lakeforge_dev.gold": ["USE SCHEMA", "SELECT"]
+      }
+    }
+  },
+  "clients": {
+    "client_alpha": {
+      "description": "Tenant specific overrides and roles for client_alpha",
+      "roles": {
+        "alpha_analysts": {
+          "principals": [
+            "client_alpha_bi_group"
+          ],
+          "catalogs": {
+            "lakeforge_client_alpha_dev": ["USE CATALOG"]
+          },
+          "schemas": {
+            "lakeforge_client_alpha_dev.gold": ["USE SCHEMA", "SELECT"]
+          }
+        }
+      }
+    }
+  }
+}

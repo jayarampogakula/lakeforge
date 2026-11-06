@@ -46,6 +46,9 @@ class IngestionConfig:
     business_key: List[str] = field(default_factory=list)
     merge_strategy: str = "append"
     
+    # Multi-tenant scoping
+    client_id: Optional[str] = None
+
     # Silver layer target (used by the Silver pipeline)
     silver_table: Optional[str] = None
     silver_schema: Optional[str] = None
@@ -100,9 +103,14 @@ class DQRule:
             "unique": "duplicate_check",
             "regex": "regex_check",
             "range": "range_check",
+            "positive_value": "range_check",
+            "positive": "range_check",
             "custom_sql": "custom_sql",
             "datatype": "datatype_check"
         }
+        raw = self.rule_type or self.validation_type
+        if raw in ["positive_value", "positive"] and self.min_value is None:
+            self.min_value = 0.0
         if self.rule_type in val_map:
             self.rule_type = val_map[self.rule_type]
         elif not self.rule_type and self.validation_type:
@@ -156,7 +164,59 @@ class ViewConfig:
 
 
 class ConfigParser:
-    """Parser for LakeForge JSON configurations."""
+    """Parser for LakeForge JSON configurations with multi-tenant client scoping."""
+
+    @staticmethod
+    def _find_scoped_config(
+        config_dir_or_file: str,
+        category: str,
+        item_name: str,
+        client_id: Optional[str] = None
+    ) -> Optional[Dict[str, Any]]:
+        """
+        Locate configuration with multi-tenant client scoping and fallback inheritance.
+        Priority:
+          1. configs/clients/<client_id>/<category>/<item_name>.json
+          2. configs/clients/<client_id>/<item_name>.json
+          3. Multi-source file inside configs/clients/<client_id>/<category>/
+          4. configs/<category>/<item_name>.json
+          5. Multi-source file inside configs/<category>/
+        """
+        path = Path(config_dir_or_file)
+        if not path.is_dir():
+            return None
+
+        # 1. Check client-specific directories if client_id is given
+        if client_id:
+            client_cat_dir = path / "clients" / client_id / category
+            if client_cat_dir.is_dir():
+                file_direct = client_cat_dir / f"{item_name}.json"
+                if file_direct.is_file():
+                    with open(file_direct, 'r', encoding='utf-8') as f:
+                        return json.load(f)
+                merged = ConfigParser.load_merged_json(str(client_cat_dir))
+                if item_name in merged:
+                    return merged[item_name]
+
+            client_dir = path / "clients" / client_id
+            if client_dir.is_dir():
+                file_direct = client_dir / f"{item_name}.json"
+                if file_direct.is_file():
+                    with open(file_direct, 'r', encoding='utf-8') as f:
+                        return json.load(f)
+
+        # 2. Check standard category directory
+        cat_dir = path / category
+        if cat_dir.is_dir():
+            file_direct = cat_dir / f"{item_name}.json"
+            if file_direct.is_file():
+                with open(file_direct, 'r', encoding='utf-8') as f:
+                    return json.load(f)
+            merged = ConfigParser.load_merged_json(str(cat_dir))
+            if item_name in merged:
+                return merged[item_name]
+
+        return None
     
     @staticmethod
     def load_merged_json(path_or_dir: str) -> Dict[str, Any]:
@@ -254,26 +314,21 @@ class ConfigParser:
     def get_ingestion_config(
         config_dir_or_file: str,
         source_name: str,
-        environment: str
+        environment: str,
+        client_id: Optional[str] = None
     ) -> IngestionConfig:
         """
         Extract and construct an IngestionConfig for a source from the configs.
+        Supports multi-tenant client_id scoping.
         """
         env_config = ConfigParser.get_environment_config(config_dir_or_file, environment)
         path = Path(config_dir_or_file)
         source_data = None
-        
+
         if path.is_dir():
-            ingest_dir = path / "ingestion"
-            if ingest_dir.exists() and ingest_dir.is_dir():
-                src_file = ingest_dir / f"{source_name}.json"
-                if src_file.exists():
-                    with open(src_file, 'r', encoding='utf-8') as f:
-                        source_data = json.load(f)
-                else:
-                    merged = ConfigParser.load_merged_json(str(ingest_dir))
-                    source_data = merged.get(source_name)
-            else:
+            # Scoped resolution
+            source_data = ConfigParser._find_scoped_config(config_dir_or_file, "ingestion", source_name, client_id)
+            if source_data is None:
                 src_file = path / f"{source_name}.json"
                 if src_file.exists():
                     with open(src_file, 'r', encoding='utf-8') as f:
@@ -310,17 +365,20 @@ class ConfigParser:
             
         # Per-source catalog/bronze schema override the environment defaults;
         # a dict-valued "schema" is a legacy column-schema block, not a schema name
-        catalog_val = source_data.get("catalog", env_config["catalog"])
-        schema_val = source_data.get("schema", env_config["bronze_schema"])
+        catalog_val = source_data.get("target_catalog") or source_data.get("catalog", env_config["catalog"])
+        schema_val = source_data.get("target_schema") or source_data.get("schema", env_config["bronze_schema"])
         if not isinstance(schema_val, str):
             schema_val = env_config["bronze_schema"]
         
+        raw_stype = source_data.get("source_type", "csv")
+        resolved_stype = source_data.get("file_format", "csv") if raw_stype in ["file", "files"] else raw_stype
+
         return IngestionConfig(
             source_name=source_name,
-            source_type=source_data.get("source_type", "csv"),
-            source_path=source_data.get("file_path"),
+            source_type=resolved_stype,
+            source_path=source_data.get("file_path") or source_data.get("source_path"),
             storage_account=source_data.get("storage_account"),
-            target_table=source_data.get("bronze_table"),
+            target_table=source_data.get("bronze_table") or source_data.get("target_table"),
             target_catalog=catalog_val,
             target_schema=schema_val,
             file_format=source_data.get("file_format", "csv"),
@@ -333,6 +391,7 @@ class ConfigParser:
             mode=mode_val,
             business_key=source_data.get("business_key", []),
             merge_strategy=merge_strat,
+            client_id=client_id or source_data.get("client_id"),
             silver_table=source_data.get("silver_table"),
             silver_schema=source_data.get("silver_schema", env_config.get("silver_schema"))
         )
@@ -341,15 +400,17 @@ class ConfigParser:
     def get_dq_config(
         config_dir_or_file: str,
         source_name: str,
-        environment: str
+        environment: str,
+        client_id: Optional[str] = None
     ) -> DQConfig:
         """
         Extract and construct a DQConfig for a source from configs.
+        Supports multi-tenant client_id scoping.
         """
         env_config = ConfigParser.get_environment_config(config_dir_or_file, environment)
-        
+
         try:
-            ing_config = ConfigParser.get_ingestion_config(config_dir_or_file, source_name, environment)
+            ing_config = ConfigParser.get_ingestion_config(config_dir_or_file, source_name, environment, client_id)
             target_tbl = ing_config.target_table
             dq_catalog = ing_config.target_catalog
             dq_schema = ing_config.target_schema
@@ -357,21 +418,13 @@ class ConfigParser:
             target_tbl = source_name
             dq_catalog = env_config["catalog"]
             dq_schema = env_config["bronze_schema"]
-            
+
         path = Path(config_dir_or_file)
         rules_list = None
-        
+
         if path.is_dir():
-            dq_dir = path / "dq"
-            if dq_dir.exists() and dq_dir.is_dir():
-                src_file = dq_dir / f"{source_name}.json"
-                if src_file.exists():
-                    with open(src_file, 'r', encoding='utf-8') as f:
-                        rules_list = json.load(f)
-                else:
-                    merged = ConfigParser.load_merged_json(str(dq_dir))
-                    rules_list = merged.get(source_name)
-            else:
+            rules_list = ConfigParser._find_scoped_config(config_dir_or_file, "dq", source_name, client_id)
+            if rules_list is None:
                 src_file = path / f"{source_name}.json"
                 if src_file.exists():
                     with open(src_file, 'r', encoding='utf-8') as f:
@@ -393,6 +446,8 @@ class ConfigParser:
         parsed_rules = []
         for rule_dict in rules_list:
             rule_args = dict(rule_dict)
+            if "rule_name" not in rule_args:
+                rule_args["rule_name"] = f"{rule_args.get('column', 'col')}_{rule_args.get('rule_type', rule_args.get('validation_type', 'rule'))}"
             if "rule_type" not in rule_args and "validation_type" in rule_args:
                 rule_args["rule_type"] = rule_args["validation_type"]
             parsed_rules.append(DQRule(**rule_args))
@@ -412,25 +467,19 @@ class ConfigParser:
     def get_silver_transformation_config(
         config_dir_or_file: str,
         target_table: str,
-        environment: str
+        environment: str,
+        client_id: Optional[str] = None
     ) -> Dict[str, Any]:
         """
         Extract and construct a Silver transformations config for a table from configs.
+        Supports multi-tenant client_id scoping.
         """
         path = Path(config_dir_or_file)
         trans_data = None
-        
+
         if path.is_dir():
-            trans_dir = path / "transformations"
-            if trans_dir.exists() and trans_dir.is_dir():
-                src_file = trans_dir / f"{target_table}.json"
-                if src_file.exists():
-                    with open(src_file, 'r', encoding='utf-8') as f:
-                        trans_data = json.load(f)
-                else:
-                    merged = ConfigParser.load_merged_json(str(trans_dir))
-                    trans_data = merged.get(target_table)
-            else:
+            trans_data = ConfigParser._find_scoped_config(config_dir_or_file, "transformations", target_table, client_id)
+            if trans_data is None:
                 src_file = path / f"{target_table}.json"
                 if src_file.exists():
                     with open(src_file, 'r', encoding='utf-8') as f:
@@ -455,25 +504,19 @@ class ConfigParser:
     def get_gold_aggregation_config(
         config_dir_or_file: str,
         target_table: str,
-        environment: str
+        environment: str,
+        client_id: Optional[str] = None
     ) -> Dict[str, Any]:
         """
         Extract and construct a Gold aggregation config for a table from configs.
+        Supports multi-tenant client_id scoping.
         """
         path = Path(config_dir_or_file)
         agg_data = None
-        
+
         if path.is_dir():
-            agg_dir = path / "aggregations"
-            if agg_dir.exists() and agg_dir.is_dir():
-                src_file = agg_dir / f"{target_table}.json"
-                if src_file.exists():
-                    with open(src_file, 'r', encoding='utf-8') as f:
-                        agg_data = json.load(f)
-                else:
-                    merged = ConfigParser.load_merged_json(str(agg_dir))
-                    agg_data = merged.get(target_table)
-            else:
+            agg_data = ConfigParser._find_scoped_config(config_dir_or_file, "aggregations", target_table, client_id)
+            if agg_data is None:
                 src_file = path / f"{target_table}.json"
                 if src_file.exists():
                     with open(src_file, 'r', encoding='utf-8') as f:
@@ -497,21 +540,29 @@ class ConfigParser:
     @staticmethod
     def get_view_configs(
         config_dir_or_file: str,
-        environment: str
+        environment: str,
+        client_id: Optional[str] = None
     ) -> List[ViewConfig]:
         """
         Extract and construct a list of ViewConfigs from configs.
+        Supports multi-tenant client_id scoping.
         """
         env_config = ConfigParser.get_environment_config(config_dir_or_file, environment)
         path = Path(config_dir_or_file)
         views_dict = None
-        
+
         if path.is_dir():
-            views_dir = path / "views"
-            if views_dir.exists() and views_dir.is_dir():
-                views_dict = ConfigParser.load_merged_json(str(views_dir))
-            else:
-                views_dict = ConfigParser.load_merged_json(config_dir_or_file)
+            if client_id:
+                client_views_dir = path / "clients" / client_id / "views"
+                if client_views_dir.is_dir():
+                    views_dict = ConfigParser.load_merged_json(str(client_views_dir))
+
+            if not views_dict:
+                views_dir = path / "views"
+                if views_dir.exists() and views_dir.is_dir():
+                    views_dict = ConfigParser.load_merged_json(str(views_dir))
+                else:
+                    views_dict = ConfigParser.load_merged_json(config_dir_or_file)
         else:
             with open(path, 'r', encoding='utf-8') as f:
                 monolithic = json.load(f)
@@ -529,17 +580,21 @@ class ConfigParser:
                 continue
             schema_type = view_info.get("schema_type", "silver")
             
-            if schema_type == "bronze":
+            if view_info.get("schema"):
+                schema_val = view_info.get("schema")
+            elif schema_type == "bronze":
                 schema_val = env_config["bronze_schema"]
             elif schema_type == "gold":
                 schema_val = env_config["gold_schema"]
             else:
                 schema_val = env_config["silver_schema"]
+
+            catalog_val = view_info.get("catalog") or env_config["catalog"]
                 
             parsed_configs.append(
                 ViewConfig(
                     view_name=view_name,
-                    catalog=env_config["catalog"],
+                    catalog=catalog_val,
                     schema=schema_val,
                     definition_type=view_info.get("definition_type", "table"),
                     view_type=view_info.get("view_type", "persistent"),
@@ -678,11 +733,12 @@ def load_dq_config(config_path: str, environment: str = "dev") -> DQConfig:
     return config
 
 
-def load_view_configs(config_path: str, environment: str) -> List[ViewConfig]:
+def load_view_configs(config_path: str, environment: str, client_id: Optional[str] = None) -> List[ViewConfig]:
     """
     Load and validate view configurations.
+    Supports multi-tenant client_id scoping.
     """
-    configs = ConfigParser.get_view_configs(config_path, environment)
+    configs = ConfigParser.get_view_configs(config_path, environment, client_id=client_id)
     for config in configs:
         errors = ConfigParser.validate_view_config(config)
         if errors:

@@ -1,0 +1,21 @@
+{
+  "v_client_alpha_sales_summary": {
+    "definition_type": "query",
+    "catalog": "lakeforge_client_alpha_dev",
+    "schema": "gold",
+    "query": "SELECT region, COUNT(sale_id) AS total_sales, SUM(amount) AS total_revenue FROM {catalog}.silver.sales_clean GROUP BY region"
+  },
+  "v_client_alpha_recent_sales": {
+    "definition_type": "table",
+    "catalog": "lakeforge_client_alpha_dev",
+    "schema": "silver",
+    "source_table": "sales_clean",
+    "select_columns": [
+      "sale_id",
+      "customer_id",
+      "amount",
+      "region"
+    ],
+    "filter_condition": "amount > 0"
+  }
+}

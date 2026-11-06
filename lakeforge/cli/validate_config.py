@@ -1,11 +1,12 @@
 """
 LakeForge CLI - Config Validator
 Validates LakeForge modular or monolithic JSON configuration files against schemas and rules.
+Supports multi-tenant client configs and centralized governance access control.
 """
 import sys
 import json
 from pathlib import Path
-from typing import Dict, List, Any, Tuple
+from typing import Dict, List, Any, Tuple, Optional
 
 from lakeforge.metadata.config_parser import (
     ConfigParser,
@@ -14,9 +15,14 @@ from lakeforge.metadata.config_parser import (
     DQRule,
     ViewConfig,
 )
+from lakeforge.governance.governance_engine import GovernanceEngine
 
 
-def validate_all_configs(config_dir_or_file: str, environment: str = "dev") -> Tuple[bool, Dict[str, Any]]:
+def validate_all_configs(
+    config_dir_or_file: str,
+    environment: str = "dev",
+    client_id: Optional[str] = None
+) -> Tuple[bool, Dict[str, Any]]:
     """
     Validate all configurations in a directory or file.
 
@@ -30,6 +36,7 @@ def validate_all_configs(config_dir_or_file: str, environment: str = "dev") -> T
     summary = {
         "path": str(path.resolve()),
         "environment": environment,
+        "client_id": client_id,
         "valid_count": 0,
         "error_count": 0,
         "warning_count": 0,
@@ -65,51 +72,75 @@ def validate_all_configs(config_dir_or_file: str, environment: str = "dev") -> T
         record("environments", environment, [str(e)])
 
     # 2. Ingestion
-    ingest_dir = path / "ingestion" if path.is_dir() else None
-    if ingest_dir and ingest_dir.exists():
-        for f in ingest_dir.glob("*.json"):
+    ingest_dirs = []
+    if path.is_dir():
+        if client_id and (path / "clients" / client_id / "ingestion").is_dir():
+            ingest_dirs.append((f"clients/{client_id}/ingestion", path / "clients" / client_id / "ingestion", client_id))
+        if (path / "ingestion").is_dir():
+            ingest_dirs.append(("ingestion", path / "ingestion", None))
+
+    for cat_label, idir, cid in ingest_dirs:
+        for f in idir.glob("*.json"):
             try:
                 data = json.loads(f.read_text(encoding="utf-8"))
-                # Handle single source vs multi-source file
                 sources = data if (isinstance(data, dict) and not any(k in data for k in ["source_type", "file_path", "bronze_table"])) else {f.stem: data}
                 for src_name, src_spec in sources.items():
                     try:
-                        cfg = ConfigParser.get_ingestion_config(str(path), src_name, environment)
+                        cfg = ConfigParser.get_ingestion_config(str(path), src_name, environment, client_id=cid)
                         errs = ConfigParser.validate_ingestion_config(cfg)
-                        record("ingestion", f"{f.name}::{src_name}", errs)
+                        item_id = f"[{cat_label}] {f.name}::{src_name}" if cid else f"{f.name}::{src_name}"
+                        record("ingestion", item_id, errs)
                     except Exception as ex:
                         record("ingestion", f"{f.name}::{src_name}", [str(ex)])
             except Exception as e:
                 record("ingestion", f.name, [f"Invalid JSON: {e}"])
 
     # 3. Data Quality
-    dq_dir = path / "dq" if path.is_dir() else None
-    if dq_dir and dq_dir.exists():
-        for f in dq_dir.glob("*.json"):
+    dq_dirs = []
+    if path.is_dir():
+        if client_id and (path / "clients" / client_id / "dq").is_dir():
+            dq_dirs.append((f"clients/{client_id}/dq", path / "clients" / client_id / "dq", client_id))
+        if (path / "dq").is_dir():
+            dq_dirs.append(("dq", path / "dq", None))
+
+    for cat_label, ddir, cid in dq_dirs:
+        for f in ddir.glob("*.json"):
             try:
-                dq_cfg = ConfigParser.get_dq_config(str(path), f.stem, environment)
+                dq_cfg = ConfigParser.get_dq_config(str(path), f.stem, environment, client_id=cid)
                 errs = ConfigParser.validate_dq_config(dq_cfg)
-                record("dq", f.name, errs)
+                item_id = f"[{cat_label}] {f.name}" if cid else f.name
+                record("dq", item_id, errs)
             except Exception as e:
                 record("dq", f.name, [str(e)])
 
     # 4. Silver Transformations
-    trans_dir = path / "transformations" if path.is_dir() else None
-    if trans_dir and trans_dir.exists():
-        for f in trans_dir.glob("*.json"):
+    trans_dirs = []
+    if path.is_dir():
+        if client_id and (path / "clients" / client_id / "transformations").is_dir():
+            trans_dirs.append((f"clients/{client_id}/transformations", path / "clients" / client_id / "transformations"))
+        if (path / "transformations").is_dir():
+            trans_dirs.append(("transformations", path / "transformations"))
+
+    for cat_label, tdir in trans_dirs:
+        for f in tdir.glob("*.json"):
             errs = []
             try:
                 data = json.loads(f.read_text(encoding="utf-8"))
                 if not data.get("source_table"):
                     errs.append("Missing 'source_table'")
-                transformations = data.get("transformations", [])
-                if not isinstance(transformations, list):
+                transformations = data.get("transformations")
+                columns = data.get("columns")
+                dedup = data.get("deduplication")
+                if transformations is None and columns is None and dedup is None:
+                    errs.append("Configuration must specify 'transformations', 'columns', or 'deduplication'")
+                if transformations is not None and not isinstance(transformations, list):
                     errs.append("'transformations' must be a list")
-                else:
+                elif transformations is not None:
                     for idx, t in enumerate(transformations):
                         if not isinstance(t, dict) or "type" not in t:
                             errs.append(f"Step {idx}: missing 'type'")
-                record("transformations", f.name, errs)
+                item_id = f"[{cat_label}] {f.name}" if "clients" in cat_label else f.name
+                record("transformations", item_id, errs)
             except Exception as e:
                 record("transformations", f.name, [f"Invalid JSON: {e}"])
 
@@ -130,13 +161,24 @@ def validate_all_configs(config_dir_or_file: str, environment: str = "dev") -> T
 
     # 6. Views
     try:
-        views = ConfigParser.get_view_configs(str(path), environment)
+        views = ConfigParser.get_view_configs(str(path), environment, client_id=client_id)
         for v in views:
             errs = ConfigParser.validate_view_config(v)
             record("views", v.view_name, errs)
     except Exception as e:
         # Views are optional
         pass
+
+    # 7. Centralized Governance
+    try:
+        gov_config = GovernanceEngine.load_governance_config(str(path), client_id=client_id)
+        if gov_config.roles or gov_config.grants:
+            gov_errs = []
+            if not gov_config.grants:
+                gov_errs.append("No valid grants could be resolved from defined roles")
+            record("governance", "access_control.json", gov_errs)
+    except Exception as e:
+        record("governance", "access_control.json", [str(e)])
 
     is_overall_valid = summary["error_count"] == 0
     return is_overall_valid, summary
@@ -149,6 +191,8 @@ def print_summary(summary: Dict[str, Any]):
     print("=" * 70)
     print(f"Path:        {summary.get('path')}")
     print(f"Environment: {summary.get('environment')}")
+    if summary.get("client_id"):
+        print(f"Client ID:   {summary.get('client_id')}")
     print(f"Passed:      {summary.get('valid_count')}")
     print(f"Errors:      {summary.get('error_count')}")
     print(f"Warnings:    {summary.get('warning_count')}")
@@ -179,9 +223,10 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description="Validate LakeForge pipeline configurations.")
     parser.add_argument("config_path", nargs="?", default="configs", help="Path to config directory or file (default: configs)")
     parser.add_argument("--env", default="dev", help="Environment to validate (default: dev)")
+    parser.add_argument("--client", default=None, help="Client ID / Tenant (optional)")
     args = parser.parse_args(argv)
 
-    is_valid, summary = validate_all_configs(args.config_path, args.env)
+    is_valid, summary = validate_all_configs(args.config_path, args.env, client_id=args.client)
     print_summary(summary)
     sys.exit(0 if is_valid else 1)
 
