@@ -50,3 +50,5 @@ spark-warehouse/
 derby.log
 metastore_db/
 checkpoint/
+target/
+*.jsonl

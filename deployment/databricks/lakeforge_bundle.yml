@@ -1,0 +1,91 @@
+# Databricks Resources - Parameterized Multi-Stage Jobs & Pipelines
+resources:
+  jobs:
+    lakeforge_etl_pipeline:
+      name: "lakeforge-medallion-pipeline-${bundle.target}"
+      
+      job_clusters:
+        - job_cluster_key: "lakeforge_cluster"
+          new_cluster:
+            spark_version: "14.3.x-scala2.12"
+            node_type_id: "i3.xlarge"
+            spark_conf:
+              "spark.databricks.delta.preview.enabled": "true"
+            autoscale:
+              min_workers: 1
+              max_workers: 4
+
+      tasks:
+        # Task 1: Bronze Ingestion
+        - task_key: "bronze_customers_ingestion"
+          job_cluster_key: "lakeforge_cluster"
+          notebook_task:
+            notebook_path: "pipelines/Bronze_Generic_Pipeline.ipynb"
+            base_parameters:
+              config_dir: "configs"
+              source_system: "erp"
+              pipeline_name: "customers"
+              environment: "${bundle.target}"
+              stage: "${bundle.target}"
+              client_id: "${var.client_id}"
+              create_views: "false"
+
+        # Task 2: Silver Cleansing & SCD2
+        - task_key: "silver_customers_transformation"
+          depends_on:
+            - task_key: "bronze_customers_ingestion"
+          job_cluster_key: "lakeforge_cluster"
+          notebook_task:
+            notebook_path: "pipelines/SILVER_Transformation_Pipeline.ipynb"
+            base_parameters:
+              config_dir: "configs"
+              source_table: "customers"
+              target_table: "customers_clean"
+              environment: "${bundle.target}"
+              stage: "${bundle.target}"
+              client_id: "${var.client_id}"
+              create_views: "false"
+
+        # Task 3: Gold Mart Aggregations
+        - task_key: "gold_customer_summary"
+          depends_on:
+            - task_key: "silver_customers_transformation"
+          job_cluster_key: "lakeforge_cluster"
+          notebook_task:
+            notebook_path: "pipelines/GOLD_Aggregation_Pipeline.ipynb"
+            base_parameters:
+              config_dir: "configs"
+              business_domain: "sales"
+              target_table: "customer_summary"
+              environment: "${bundle.target}"
+              stage: "${bundle.target}"
+              client_id: "${var.client_id}"
+              create_views: "false"
+
+        # Task 4: On-Demand / Scheduled Views Creation
+        - task_key: "views_creation_task"
+          depends_on:
+            - task_key: "gold_customer_summary"
+          job_cluster_key: "lakeforge_cluster"
+          notebook_task:
+            notebook_path: "pipelines/VIEWS_Creation_Pipeline.ipynb"
+            base_parameters:
+              config_dir: "configs"
+              environment: "${bundle.target}"
+              stage: "${bundle.target}"
+              client_id: "${var.client_id}"
+              layer: "all"
+
+        # Task 5: Governance Access Control Reconciliation
+        - task_key: "governance_security_task"
+          depends_on:
+            - task_key: "views_creation_task"
+          job_cluster_key: "lakeforge_cluster"
+          notebook_task:
+            notebook_path: "pipelines/GOVERNANCE_Security_Pipeline.ipynb"
+            base_parameters:
+              config_dir: "configs"
+              environment: "${bundle.target}"
+              stage: "${bundle.target}"
+              client_id: "${var.client_id}"
+              dry_run: "false"

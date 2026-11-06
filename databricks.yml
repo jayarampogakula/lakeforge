@@ -1,0 +1,43 @@
+# Databricks Asset Bundle (DAB) Configuration for LakeForge
+# Supports stage-driven multi-target deployment (dev, test, staging, prod)
+bundle:
+  name: lakeforge
+
+include:
+  - deployment/databricks/*.yml
+
+variables:
+  stage:
+    description: "Deployment stage (dev, test, staging, prod)"
+    default: "dev"
+  client_id:
+    description: "Client or tenant scope (optional)"
+    default: ""
+
+targets:
+  dev:
+    mode: development
+    default: true
+    workspace:
+      root_path: /Workspace/Shared/lakeforge/dev
+    variables:
+      stage: "dev"
+
+  test:
+    workspace:
+      root_path: /Workspace/Shared/lakeforge/test
+    variables:
+      stage: "test"
+
+  staging:
+    workspace:
+      root_path: /Workspace/Shared/lakeforge/staging
+    variables:
+      stage: "staging"
+
+  prod:
+    mode: production
+    workspace:
+      root_path: /Workspace/Shared/lakeforge/prod
+    variables:
+      stage: "prod"

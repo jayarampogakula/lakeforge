@@ -1,6 +1,6 @@
 """
 LakeForge Command Line Interface (CLI)
-Provides command-line utilities for LakeForge project setup, validation, execution, and governance.
+Provides command-line utilities for LakeForge project setup, validation, execution, governance, and deployment.
 """
 import sys
 import argparse
@@ -40,6 +40,15 @@ def main(argv=None):
     run_parser.add_argument("--scd2", action="store_true", help="Enable SCD Type 2 merge for Silver")
     run_parser.add_argument("--dry-run", action="store_true", help="Dry run mode for governance/audit")
 
+    # deploy
+    deploy_parser = subparsers.add_parser("deploy", help="Deploy LakeForge to a target stage (dev, test, staging, prod)")
+    deploy_parser.add_argument("--stage", "-s", required=True, choices=["dev", "test", "staging", "prod"], help="Target stage")
+    deploy_parser.add_argument("--client", "-c", default=None, help="Client ID / Tenant scope (optional)")
+    deploy_parser.add_argument("--component", default="all", choices=["all", "pipelines", "views", "governance", "package"], help="Component to deploy")
+    deploy_parser.add_argument("--config-dir", default="configs", help="Config directory (default: configs)")
+    deploy_parser.add_argument("--target-workspace", default=None, help="Target Databricks workspace path")
+    deploy_parser.add_argument("--dry-run", action="store_true", help="Dry run mode (preview without applying)")
+
     args = parser.parse_args(argv)
 
     if args.subcommand == "validate":
@@ -66,6 +75,16 @@ def main(argv=None):
         if args.dry_run:
             run_args.append("--dry-run")
         run_main(run_args)
+    elif args.subcommand == "deploy":
+        from .deploy import main as deploy_main
+        dep_args = ["--stage", args.stage, "--component", args.component, "--config-dir", args.config_dir]
+        if args.client:
+            dep_args.extend(["--client", args.client])
+        if args.target_workspace:
+            dep_args.extend(["--target-workspace", args.target_workspace])
+        if args.dry_run:
+            dep_args.append("--dry-run")
+        deploy_main(dep_args)
     else:
         parser.print_help()
 

@@ -48,11 +48,12 @@ class GovernanceEngine:
     @staticmethod
     def load_governance_config(
         config_path_or_dir: str,
-        client_id: Optional[str] = None
+        client_id: Optional[str] = None,
+        environment: Optional[str] = None
     ) -> AccessControlConfig:
         """
         Load access control configuration from JSON file or directory.
-        Supports multi-tenant scoping when client_id is supplied.
+        Supports multi-tenant client scoping and environment/stage catalog resolution.
         """
         path = Path(config_path_or_dir)
         raw_data = None
@@ -82,6 +83,16 @@ class GovernanceEngine:
         if not raw_data:
             raw_data = {"roles": {}, "clients": {}}
 
+        # Resolve target stage catalog if environment/stage is supplied
+        target_catalog_name = None
+        if environment:
+            try:
+                from lakeforge.metadata.config_parser import ConfigParser
+                env_cfg = ConfigParser.get_environment_config(config_path_or_dir, environment)
+                target_catalog_name = env_cfg.get("catalog")
+            except Exception:
+                target_catalog_name = f"lakehouse_{environment}"
+
         roles = raw_data.get("roles", {})
         clients = raw_data.get("clients", {})
 
@@ -92,6 +103,14 @@ class GovernanceEngine:
             combined_roles = dict(roles)
             combined_roles.update(client_roles)
             roles = combined_roles
+
+        def resolve_securable(name: str) -> str:
+            if not target_catalog_name:
+                return name
+            resolved = name.replace("{catalog}", target_catalog_name)
+            if environment and environment != "dev" and resolved.startswith("lakeforge_dev"):
+                resolved = resolved.replace("lakeforge_dev", target_catalog_name)
+            return resolved
 
         grants: List[PrincipalPrivilege] = []
 
@@ -109,7 +128,7 @@ class GovernanceEngine:
                         PrincipalPrivilege(
                             principal=principal,
                             securable_type="CATALOG",
-                            securable_name=cat_name,
+                            securable_name=resolve_securable(cat_name),
                             privileges=privs if isinstance(privs, list) else [privs]
                         )
                     )
@@ -118,7 +137,7 @@ class GovernanceEngine:
                         PrincipalPrivilege(
                             principal=principal,
                             securable_type="SCHEMA",
-                            securable_name=schema_name,
+                            securable_name=resolve_securable(schema_name),
                             privileges=privs if isinstance(privs, list) else [privs]
                         )
                     )
@@ -127,7 +146,7 @@ class GovernanceEngine:
                         PrincipalPrivilege(
                             principal=principal,
                             securable_type="TABLE",
-                            securable_name=table_name,
+                            securable_name=resolve_securable(table_name),
                             privileges=privs if isinstance(privs, list) else [privs]
                         )
                     )
@@ -136,7 +155,7 @@ class GovernanceEngine:
                         PrincipalPrivilege(
                             principal=principal,
                             securable_type="VIEW",
-                            securable_name=view_name,
+                            securable_name=resolve_securable(view_name),
                             privileges=privs if isinstance(privs, list) else [privs]
                         )
                     )
@@ -186,7 +205,7 @@ class GovernanceEngine:
         Returns:
             Dict containing execution summary metrics and DDL statements.
         """
-        config = self.load_governance_config(config_path_or_dir, client_id=client_id)
+        config = self.load_governance_config(config_path_or_dir, client_id=client_id, environment=environment)
         statements = self.generate_grant_ddl(config, target_catalog=target_catalog)
 
         executed = 0

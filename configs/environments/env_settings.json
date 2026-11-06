@@ -3,12 +3,28 @@
     "catalog": "lakehouse",
     "bronze_schema": "bronze",
     "silver_schema": "silver",
-    "gold_schema": "gold"
+    "gold_schema": "gold",
+    "monitoring_schema": "monitoring"
+  },
+  "test": {
+    "catalog": "lakehouse_test",
+    "bronze_schema": "bronze",
+    "silver_schema": "silver",
+    "gold_schema": "gold",
+    "monitoring_schema": "monitoring"
+  },
+  "staging": {
+    "catalog": "lakehouse_staging",
+    "bronze_schema": "bronze",
+    "silver_schema": "silver",
+    "gold_schema": "gold",
+    "monitoring_schema": "monitoring"
   },
   "prod": {
     "catalog": "lakehouse_prod",
     "bronze_schema": "bronze",
     "silver_schema": "silver",
-    "gold_schema": "gold"
+    "gold_schema": "gold",
+    "monitoring_schema": "monitoring"
   }
 }
