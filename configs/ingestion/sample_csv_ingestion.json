@@ -1,16 +1,19 @@
 {
   "source_name": "sales_data",
   "source_type": "csv",
-  "source_path": "/mnt/raw/sales/sales_2024.csv",
-  "target_table": "sales_raw",
-  "target_catalog": "bronze",
-  "target_schema": "sales",
+  "storage_account": "my_storage_account",
+  "file_path": "/mnt/raw/sales/sales_2024.csv",
   "file_format": "csv",
-  "header": true,
-  "delimiter": ",",
-  "encoding": "utf-8",
-  "infer_schema": true,
-  "schema_path": null,
+  "catalog": "lakehouse",
+  "schema": "bronze",
+  "bronze_table": "sales_raw",
+  "silver_table": "sales_clean",
+  "options": {
+    "header": "true",
+    "inferSchema": "true"
+  },
+  "business_key": ["order_id"],
+  "merge_strategy": "append",
   "mode": "append",
   "partition_by": [
     "order_date"

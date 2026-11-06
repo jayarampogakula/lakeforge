@@ -1,22 +1,16 @@
 {
   "source_type": "csv",
+  "storage_account": "lakehouse",
   "file_path": "/Volumes/lakehouse/raw/lakeforge_data/good_transactions.csv",
   "file_format": "csv",
   "options": {
     "header": "true",
     "inferSchema": "true"
   },
+  "catalog": "lakehouse",
+  "schema": "bronze",
   "bronze_table": "transactions",
   "silver_table": "transactions_clean",
   "business_key": ["transaction_id"],
-  "merge_strategy": "append",
-  "schema": {
-    "transaction_id": "int",
-    "customer_id": "int",
-    "transaction_date": "date",
-    "transaction_amount": "decimal(10,2)",
-    "product_category": "string",
-    "payment_method": "string",
-    "transaction_status": "string"
-  }
+  "merge_strategy": "append"
 }

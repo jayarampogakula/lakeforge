@@ -18,13 +18,19 @@ class IngestionConfig:
     target_catalog: str
     target_schema: str
     file_format: Optional[str] = None
+    # Storage account / container hosting the raw source files (optional)
+    storage_account: Optional[str] = None
     
     # CSV/Excel specific
     header: bool = True
-    delimiter: Optional[str] = ","
+    delimiter: Optional[str] = None  # inferred from file extension when None (e.g. .tsv -> tab)
     encoding: Optional[str] = "utf-8"
     sheet_name: Optional[str] = None
-    
+
+    # Extra Spark reader options passed straight to the format reader
+    # (e.g. rowTag for XML, multiLine for JSON, versionAsOf for Delta)
+    reader_options: Dict[str, Any] = field(default_factory=dict)
+
     # Schema options
     infer_schema: bool = True
     schema_path: Optional[str] = None
@@ -39,6 +45,10 @@ class IngestionConfig:
     # Key properties
     business_key: List[str] = field(default_factory=list)
     merge_strategy: str = "append"
+    
+    # Silver layer target (used by the Silver pipeline)
+    silver_table: Optional[str] = None
+    silver_schema: Optional[str] = None
     
     # Metadata
     tags: Dict[str, str] = field(default_factory=dict)
@@ -283,6 +293,11 @@ class ConfigParser:
         options = source_data.get("options", {})
         header_val = str(options.get("header", "true")).lower() == "true"
         infer_val = str(options.get("inferSchema", "true")).lower() == "true"
+        sheet_name_val = options.get("sheet_name", source_data.get("sheet_name"))
+        # Well-known options are parsed into typed fields; every other option
+        # (rowTag, multiLine, versionAsOf, ...) is passed straight to the reader
+        consumed_keys = {"header", "inferSchema", "delimiter", "encoding", "sheet_name"}
+        reader_opts = {k: v for k, v in options.items() if k not in consumed_keys}
         
         mode_val = "append"
         merge_strat = source_data.get("merge_strategy", "append")
@@ -291,21 +306,33 @@ class ConfigParser:
         elif merge_strat == "overwrite":
             mode_val = "overwrite"
             
+        # Per-source catalog/bronze schema override the environment defaults;
+        # a dict-valued "schema" is a legacy column-schema block, not a schema name
+        catalog_val = source_data.get("catalog", env_config["catalog"])
+        schema_val = source_data.get("schema", env_config["bronze_schema"])
+        if not isinstance(schema_val, str):
+            schema_val = env_config["bronze_schema"]
+        
         return IngestionConfig(
             source_name=source_name,
             source_type=source_data.get("source_type", "csv"),
             source_path=source_data.get("file_path"),
+            storage_account=source_data.get("storage_account"),
             target_table=source_data.get("bronze_table"),
-            target_catalog=env_config["catalog"],
-            target_schema=env_config["bronze_schema"],
+            target_catalog=catalog_val,
+            target_schema=schema_val,
             file_format=source_data.get("file_format", "csv"),
             header=header_val,
-            delimiter=options.get("delimiter", ","),
+            delimiter=options.get("delimiter"),
             encoding=options.get("encoding", "utf-8"),
             infer_schema=infer_val,
+            sheet_name=sheet_name_val,
+            reader_options=reader_opts,
             mode=mode_val,
             business_key=source_data.get("business_key", []),
-            merge_strategy=merge_strat
+            merge_strategy=merge_strat,
+            silver_table=source_data.get("silver_table"),
+            silver_schema=source_data.get("silver_schema", env_config.get("silver_schema"))
         )
 
     @staticmethod
@@ -322,8 +349,12 @@ class ConfigParser:
         try:
             ing_config = ConfigParser.get_ingestion_config(config_dir_or_file, source_name, environment)
             target_tbl = ing_config.target_table
+            dq_catalog = ing_config.target_catalog
+            dq_schema = ing_config.target_schema
         except Exception:
             target_tbl = source_name
+            dq_catalog = env_config["catalog"]
+            dq_schema = env_config["bronze_schema"]
             
         path = Path(config_dir_or_file)
         rules_list = None
@@ -368,8 +399,8 @@ class ConfigParser:
         
         return DQConfig(
             table_name=target_tbl,
-            catalog=env_config["catalog"],
-            schema=env_config["bronze_schema"],
+            catalog=dq_catalog,
+            schema=dq_schema,
             rules=parsed_rules,
             quarantine_table=quarantine_tbl,
             enable_scorecard=True

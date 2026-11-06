@@ -1,0 +1,34 @@
+{
+  "bad_duplicate_keys": {
+    "source_type": "csv",
+    "storage_account": "lakehouse",
+    "file_path": "/Volumes/lakehouse/raw/lakeforge_data/bad_duplicate_keys.csv",
+    "file_format": "csv",
+    "options": {
+      "header": "true",
+      "inferSchema": "true"
+    },
+    "catalog": "lakehouse",
+    "schema": "bronze",
+    "bronze_table": "bad_duplicate_keys",
+    "silver_table": "bad_duplicate_keys_clean",
+    "business_key": ["customer_id"],
+    "merge_strategy": "append"
+  },
+  "customers": {
+    "source_type": "csv",
+    "storage_account": "lakehouse",
+    "file_path": "/Volumes/lakehouse/raw/lakeforge_data/good_customers.csv",
+    "file_format": "csv",
+    "options": {
+      "header": "true",
+      "inferSchema": "true"
+    },
+    "catalog": "lakehouse",
+    "schema": "bronze",
+    "bronze_table": "customers",
+    "silver_table": "customers_clean",
+    "business_key": ["customer_id"],
+    "merge_strategy": "upsert"
+  }
+}

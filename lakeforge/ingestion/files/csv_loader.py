@@ -5,7 +5,13 @@ Handles CSV file ingestion with schema detection and encoding handling.
 from pyspark.sql import SparkSession, DataFrame
 from pyspark.sql.types import StructType, StructField, StringType, IntegerType, DoubleType, DateType, TimestampType
 from typing import Optional, Dict, Any, List
-import chardet
+
+try:
+    import chardet
+except ImportError:
+    # chardet is optional - encoding detection falls back to utf-8
+    chardet = None
+
 from pathlib import Path
 
 
@@ -35,6 +41,8 @@ class CSVLoader:
             Detected encoding (e.g., 'utf-8', 'iso-8859-1')
         """
         try:
+            if chardet is None:
+                return 'utf-8'  # fallback when chardet is not installed
             with open(file_path, 'rb') as f:
                 raw_data = f.read(sample_size)
                 result = chardet.detect(raw_data)

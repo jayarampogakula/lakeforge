@@ -1,0 +1,20 @@
+{
+  "source_table": "bad_duplicate_keys",
+  "schema": {
+    "customer_id": "int",
+    "customer_name": "string",
+    "email": "string",
+    "phone": "string",
+    "registration_date": "date",
+    "customer_status": "string",
+    "country": "string"
+  },
+  "transformations": [
+    {
+      "type": "deduplicate",
+      "columns": ["customer_id"],
+      "strategy": "keep_latest",
+      "order_by": "_ingestion_timestamp"
+    }
+  ]
+}

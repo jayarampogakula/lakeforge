@@ -1,5 +1,14 @@
 {
   "source_table": "customers",
+  "schema": {
+    "customer_id": "int",
+    "customer_name": "string",
+    "email": "string",
+    "phone": "string",
+    "registration_date": "date",
+    "customer_status": "string",
+    "country": "string"
+  },
   "transformations": [
     {
       "type": "select",

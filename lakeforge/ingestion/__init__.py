@@ -7,6 +7,15 @@ from lakeforge.ingestion.files.csv_loader import CSVLoader, create_csv_loader
 from lakeforge.ingestion.files.excel_loader import ExcelLoader, create_excel_loader
 from lakeforge.ingestion.files.json_loader import JSONLoader, create_json_loader
 from lakeforge.ingestion.utilities.schema_detector import SchemaDetector, create_schema_detector
+from lakeforge.ingestion.files.xml_loader import XMLLoader, create_xml_loader
+from lakeforge.ingestion.files.avro_loader import AvroLoader, create_avro_loader
+from lakeforge.ingestion.files.orc_loader import ORCLoader, create_orc_loader
+from lakeforge.ingestion.files.delta_loader import DeltaLoader, create_delta_loader
+from lakeforge.ingestion.files.text_loader import TextLoader, create_text_loader
+from lakeforge.ingestion.files.universal_loader import (
+    UniversalLoader,
+    create_universal_loader,
+)
 
 from lakeforge.ingestion.apis.api_loader import APILoader, create_api_loader
 from lakeforge.ingestion.databases.azure_sql_loader import AzureSQLLoader
@@ -56,6 +65,18 @@ __all__ = [
     'SharePointLoader',
     'SnowflakeLoader',
     'StreamingLoader',
-    'create_streaming_loader'
+    'create_streaming_loader',
+    'XMLLoader',
+    'create_xml_loader',
+    'AvroLoader',
+    'create_avro_loader',
+    'ORCLoader',
+    'create_orc_loader',
+    'DeltaLoader',
+    'create_delta_loader',
+    'TextLoader',
+    'create_text_loader',
+    'UniversalLoader',
+    'create_universal_loader'
 ]
 

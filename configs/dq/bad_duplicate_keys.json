@@ -1,0 +1,27 @@
+[
+  {
+    "rule_id": "dup_01",
+    "rule_name": "customer_id_not_null",
+    "column": "customer_id",
+    "validation_type": "not_null",
+    "severity": "critical",
+    "action": "quarantine"
+  },
+  {
+    "rule_id": "dup_02",
+    "rule_name": "customer_id_unique",
+    "column": "customer_id",
+    "validation_type": "unique",
+    "severity": "critical",
+    "action": "quarantine"
+  },
+  {
+    "rule_id": "dup_03",
+    "rule_name": "email_format",
+    "column": "email",
+    "validation_type": "regex",
+    "pattern": "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$",
+    "severity": "warning",
+    "action": "flag"
+  }
+]
