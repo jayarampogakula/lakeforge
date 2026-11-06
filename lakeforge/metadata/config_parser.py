@@ -49,6 +49,9 @@ class IngestionConfig:
     # Multi-tenant scoping
     client_id: Optional[str] = None
 
+    # Schema evolution & drift policy: allow, strict, quarantine
+    schema_evolution: str = "allow"
+
     # Silver layer target (used by the Silver pipeline)
     silver_table: Optional[str] = None
     silver_schema: Optional[str] = None
@@ -373,6 +376,14 @@ class ConfigParser:
         raw_stype = source_data.get("source_type", "csv")
         resolved_stype = source_data.get("file_format", "csv") if raw_stype in ["file", "files"] else raw_stype
 
+        evolution_val = source_data.get("schema_evolution") or options.get("schema_evolution")
+        if not evolution_val:
+            merge_schema_opt = options.get("mergeSchema")
+            if merge_schema_opt is not None:
+                evolution_val = "allow" if str(merge_schema_opt).lower() == "true" else "strict"
+            else:
+                evolution_val = "allow"
+
         return IngestionConfig(
             source_name=source_name,
             source_type=resolved_stype,
@@ -392,6 +403,7 @@ class ConfigParser:
             business_key=source_data.get("business_key", []),
             merge_strategy=merge_strat,
             client_id=client_id or source_data.get("client_id"),
+            schema_evolution=evolution_val,
             silver_table=source_data.get("silver_table"),
             silver_schema=source_data.get("silver_schema", env_config.get("silver_schema"))
         )

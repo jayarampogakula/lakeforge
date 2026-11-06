@@ -10,7 +10,14 @@ from .governance.governance_engine import (
     GovernanceEngine,
     create_governance_engine,
     AccessControlConfig,
-    PrincipalPrivilege
+    PrincipalPrivilege,
+    MaskingFunction,
+    ColumnMaskAssignment,
+    RowFilter
+)
+from .maintenance.table_maintenance import (
+    TableMaintenanceManager,
+    create_maintenance_manager
 )
 
 __all__ = [
@@ -25,6 +32,11 @@ __all__ = [
     "create_governance_engine",
     "AccessControlConfig",
     "PrincipalPrivilege",
+    "MaskingFunction",
+    "ColumnMaskAssignment",
+    "RowFilter",
+    "TableMaintenanceManager",
+    "create_maintenance_manager",
 ]
 
 # Spark-dependent components

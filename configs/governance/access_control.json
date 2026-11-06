@@ -82,5 +82,44 @@
         }
       }
     }
-  }
+  },
+  "masking_functions": [
+    {
+      "name": "mask_email",
+      "schema": "silver",
+      "input_column": "email",
+      "input_type": "STRING",
+      "return_type": "STRING",
+      "expression": "CASE WHEN is_account_group_member('pii_admins') THEN email ELSE concat(substring(email, 1, 2), '****@****.com') END"
+    },
+    {
+      "name": "mask_phone",
+      "schema": "silver",
+      "input_column": "phone",
+      "input_type": "STRING",
+      "return_type": "STRING",
+      "expression": "CASE WHEN is_account_group_member('pii_admins') THEN phone ELSE concat('XXX-XXX-', substring(phone, -4)) END"
+    }
+  ],
+  "column_masks": [
+    {
+      "table": "{catalog}.silver.customers_clean",
+      "column": "email",
+      "function": "{catalog}.silver.mask_email"
+    },
+    {
+      "table": "{catalog}.silver.customers_clean",
+      "column": "phone",
+      "function": "{catalog}.silver.mask_phone"
+    }
+  ],
+  "row_filters": [
+    {
+      "name": "filter_customers_by_region",
+      "schema": "silver",
+      "table": "{catalog}.silver.customers_clean",
+      "filter_columns": ["region"],
+      "expression": "is_account_group_member('global_data_access') OR region = current_user()"
+    }
+  ]
 }

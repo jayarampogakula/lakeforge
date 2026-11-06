@@ -160,12 +160,25 @@ def run_governance(config_dir: str, environment: str = "dev", dry_run: bool = Fa
         print(f"  * {stmt}")
 
 
+def run_maintenance(config_dir: str, environment: str = "dev", target_layer: str = "all", table_name: Optional[str] = None, client_id: Optional[str] = None, vacuum_hours: int = 168, dry_run: bool = False):
+    """Execute on-demand Delta table maintenance."""
+    print(f"Loading Table Maintenance (layer={target_layer}, client={client_id or 'global'}, env={environment}, dry_run={dry_run})...")
+    from lakeforge.maintenance.table_maintenance import TableMaintenanceManager
+    mgr = TableMaintenanceManager()
+    if table_name:
+        res = mgr.run_table_maintenance(table_name=table_name, vacuum_retain_hours=vacuum_hours, dry_run=dry_run)
+        print(f"Table Maintenance on {table_name}: {res.status}")
+    else:
+        summary = mgr.run_layer_maintenance(config_dir=config_dir, stage=environment, layer=target_layer, client_id=client_id, vacuum_retain_hours=vacuum_hours, dry_run=dry_run)
+        print(f"Layer Maintenance Summary: {summary['tables_processed']} tables processed for layer {target_layer} in stage {environment}")
+
+
 def main(argv=None):
     if argv is None:
         argv = sys.argv[1:]
     import argparse
     parser = argparse.ArgumentParser(description="Run a LakeForge pipeline stage.")
-    parser.add_argument("--layer", choices=["bronze", "silver", "gold", "views", "governance"], required=True, help="Medallion layer or on-demand stage")
+    parser.add_argument("--layer", choices=["bronze", "silver", "gold", "views", "governance", "maintenance"], required=True, help="Medallion layer or on-demand stage")
     parser.add_argument("--name", default=None, help="Source name (Bronze) or target table (Silver/Gold) or view name (Views)")
     parser.add_argument("--source", default=None, help="Source table name for Silver layer (optional)")
     parser.add_argument("--env", default="dev", help="Environment (default: dev)")
@@ -173,6 +186,7 @@ def main(argv=None):
     parser.add_argument("--config-dir", default="configs", help="Configuration directory (default: configs)")
     parser.add_argument("--scd2", action="store_true", help="Use SCD Type 2 for Silver layer")
     parser.add_argument("--dry-run", action="store_true", help="Dry run mode for governance/audit")
+    parser.add_argument("--vacuum-hours", type=int, default=168, help="Vacuum retention hours (default: 168)")
     args = parser.parse_args(argv)
 
     if args.layer == "bronze":
@@ -191,6 +205,8 @@ def main(argv=None):
         run_views(args.config_dir, args.name, args.env, client_id=args.client)
     elif args.layer == "governance":
         run_governance(args.config_dir, args.env, dry_run=args.dry_run, client_id=args.client)
+    elif args.layer == "maintenance":
+        run_maintenance(args.config_dir, environment=args.env, target_layer=args.name or "all", client_id=args.client, vacuum_hours=args.vacuum_hours, dry_run=args.dry_run)
 
 
 if __name__ == "__main__":

@@ -6,6 +6,9 @@ from lakeforge.governance.governance_engine import (
     GovernanceEngine,
     AccessControlConfig,
     PrincipalPrivilege,
+    MaskingFunction,
+    ColumnMaskAssignment,
+    RowFilter,
     create_governance_engine
 )
 
@@ -13,5 +16,8 @@ __all__ = [
     "GovernanceEngine",
     "AccessControlConfig",
     "PrincipalPrivilege",
+    "MaskingFunction",
+    "ColumnMaskAssignment",
+    "RowFilter",
     "create_governance_engine"
 ]

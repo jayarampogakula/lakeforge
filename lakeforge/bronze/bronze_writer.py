@@ -9,6 +9,11 @@ from datetime import datetime
 from delta.tables import DeltaTable
 
 
+class SchemaDriftError(Exception):
+    """Raised when incoming schema deviates from existing table and schema evolution is strict."""
+    pass
+
+
 class BronzeWriter:
     """
     Writer for Bronze layer Delta tables with audit capabilities.
@@ -92,7 +97,8 @@ class BronzeWriter:
         source_system: str = "unknown",
         merge_keys: Optional[List[str]] = None,
         optimize_after_write: bool = False,
-        z_order_by: Optional[List[str]] = None
+        z_order_by: Optional[List[str]] = None,
+        schema_evolution: str = "allow"
     ) -> Dict[str, Any]:
         """
         Write DataFrame to Bronze layer Delta table.
@@ -109,6 +115,7 @@ class BronzeWriter:
             merge_keys: Keys for merge operation (required if mode='merge')
             optimize_after_write: Run OPTIMIZE after write
             z_order_by: Columns to Z-order by during optimization
+            schema_evolution: Schema evolution policy ('allow', 'strict', 'quarantine')
             
         Returns:
             Write statistics dictionary
@@ -127,14 +134,53 @@ class BronzeWriter:
             "table": full_table_name,
             "mode": mode,
             "start_time": datetime.now().isoformat(),
-            "rows_written": df.count()
+            "rows_written": df.count(),
+            "schema_evolution_policy": schema_evolution
         }
+
+        # Check for schema drift if target table exists
+        existing_cols = None
+        try:
+            if self.spark.catalog.tableExists(full_table_name):
+                existing_cols = self.spark.table(full_table_name).columns
+            elif self.spark.catalog.tableExists(f"{schema}.{target_table}"):
+                existing_cols = self.spark.table(f"{schema}.{target_table}").columns
+            elif self.spark.catalog.tableExists(target_table):
+                existing_cols = self.spark.table(target_table).columns
+        except Exception:
+            existing_cols = None
+
+        if existing_cols:
+            existing_set = set(existing_cols)
+            incoming_cols = set(df.columns)
+            new_cols = incoming_cols - existing_set
+
+            if new_cols:
+                if schema_evolution == "strict":
+                    raise SchemaDriftError(
+                        f"Schema drift detected on table {full_table_name}: unexpected column(s) {sorted(list(new_cols))}. "
+                        f"Schema evolution policy is set to 'strict'."
+                    )
+                elif schema_evolution == "quarantine":
+                    metrics["schema_drift_detected"] = True
+                    metrics["drifted_columns"] = sorted(list(new_cols))
+                    quarantine_table = f"{catalog}.{schema}.{target_table}_quarantine" if catalog else f"{schema}.{target_table}_quarantine"
+                    try:
+                        df.write.format("delta").mode("append").option("mergeSchema", "true").saveAsTable(quarantine_table)
+                        metrics["quarantine_table"] = quarantine_table
+                    except Exception:
+                        df.write.format("delta").mode("append").option("mergeSchema", "true").saveAsTable(f"{target_table}_quarantine")
+                    matching_cols = [c for c in df.columns if c in existing_set]
+                    df = df.select(*matching_cols)
+                elif schema_evolution == "allow":
+                    metrics["schema_evolved"] = True
+                    metrics["evolved_columns"] = sorted(list(new_cols))
         
         try:
             if mode == "merge" and merge_keys:
                 # Merge operation
                 metrics.update(self._merge_to_table(
-                    df, full_table_name, merge_keys, partition_by
+                    df, full_table_name, merge_keys, partition_by, schema_evolution=schema_evolution
                 ))
             else:
                 # Standard write operation
@@ -142,6 +188,9 @@ class BronzeWriter:
                 
                 if partition_by:
                     writer = writer.partitionBy(partition_by)
+
+                if schema_evolution == "allow":
+                    writer = writer.option("mergeSchema", "true")
                 
                 writer.saveAsTable(full_table_name)
             
@@ -166,7 +215,8 @@ class BronzeWriter:
         df: DataFrame,
         full_table_name: str,
         merge_keys: List[str],
-        partition_by: Optional[List[str]] = None
+        partition_by: Optional[List[str]] = None,
+        schema_evolution: str = "allow"
     ) -> Dict[str, Any]:
         """
         Perform merge (upsert) operation on Delta table.
@@ -176,6 +226,7 @@ class BronzeWriter:
             full_table_name: Target table name (catalog.schema.table)
             merge_keys: Columns to match on for merge
             partition_by: Partition columns
+            schema_evolution: Schema evolution policy
             
         Returns:
             Merge metrics
@@ -186,6 +237,8 @@ class BronzeWriter:
             writer = df.write.format("delta").mode("overwrite")
             if partition_by:
                 writer = writer.partitionBy(partition_by)
+            if schema_evolution == "allow":
+                writer = writer.option("mergeSchema", "true")
             writer.saveAsTable(full_table_name)
             
             return {
@@ -193,6 +246,12 @@ class BronzeWriter:
                 "rows_inserted": df.count()
             }
         
+        if schema_evolution == "allow":
+            try:
+                self.spark.conf.set("spark.databricks.delta.schema.autoMerge.enabled", "true")
+            except Exception:
+                pass
+
         # Table exists, perform merge
         target_table = DeltaTable.forName(self.spark, full_table_name)
         

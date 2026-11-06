@@ -1,0 +1,134 @@
+# LakeForge Azure DevOps CI/CD Multi-Stage Pipeline
+# Fully compatible with LakeForge CLI, Databricks Asset Bundles (DABs), and Terraform.
+# Zero framework code changes required - 100% engine & runner agnostic.
+
+trigger:
+  branches:
+    include:
+      - main
+      - release/*
+
+pr:
+  branches:
+    include:
+      - main
+
+parameters:
+  - name: stage
+    displayName: "Deployment Stage / Environment"
+    type: string
+    default: dev
+    values:
+      - dev
+      - test
+      - staging
+      - prod
+
+  - name: client_id
+    displayName: "Tenant / Client ID (Optional Scoping)"
+    type: string
+    default: "none"
+
+  - name: component
+    displayName: "Component to Deploy"
+    type: string
+    default: all
+    values:
+      - all
+      - configs
+      - notebooks
+      - dabs
+      - terraform
+
+  - name: dry_run
+    displayName: "Dry Run (Validation & Planning Only)"
+    type: boolean
+    default: false
+
+variables:
+  - name: PYTHON_VERSION
+    value: "3.10"
+  # Set Databricks secrets in Azure DevOps Pipeline Library Variable Groups
+  # - group: LakeForge-Databricks-Credentials
+
+stages:
+  - stage: BuildAndTest
+    displayName: "Build & Unit Test Verification"
+    jobs:
+      - job: TestJob
+        displayName: "Run Unit Tests & Config Validation"
+        pool:
+          vmImage: "ubuntu-latest"
+        steps:
+          - task: UsePythonVersion@0
+            displayName: "Use Python $(PYTHON_VERSION)"
+            inputs:
+              versionSpec: $(PYTHON_VERSION)
+              addToPath: true
+
+          - script: |
+              python -m pip install --upgrade pip
+              pip install -e ".[dev]"
+            displayName: "Install LakeForge Package & Dependencies"
+
+          - script: |
+              python -m pytest tests/unit_tests/ -v
+            displayName: "Execute PyTest Suite"
+
+          - script: |
+              python -m lakeforge.cli.validate_configs --config-dir configs
+            displayName: "Validate Metadata Configurations"
+
+  - stage: DeployStage
+    displayName: "Deploy to Stage: ${{ parameters.stage }}"
+    dependsOn: BuildAndTest
+    condition: succeeded()
+    jobs:
+      - deployment: DeployJob
+        displayName: "Execute LakeForge Deployment"
+        pool:
+          vmImage: "ubuntu-latest"
+        environment: ${{ parameters.stage }}
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - checkout: self
+
+                - task: UsePythonVersion@0
+                  displayName: "Use Python $(PYTHON_VERSION)"
+                  inputs:
+                    versionSpec: $(PYTHON_VERSION)
+                    addToPath: true
+
+                - script: |
+                    python -m pip install --upgrade pip
+                    pip install -e .
+                  displayName: "Install LakeForge CLI"
+
+                - script: |
+                    CLIENT_ARG=""
+                    if [ "${{ parameters.client_id }}" != "none" ] && [ -n "${{ parameters.client_id }}" ]; then
+                      CLIENT_ARG="--client ${{ parameters.client_id }}"
+                    fi
+
+                    DRY_RUN_ARG=""
+                    if [ "${{ parameters.dry_run }}" = "True" ] || [ "${{ parameters.dry_run }}" = "true" ]; then
+                      DRY_RUN_ARG="--dry-run"
+                    fi
+
+                    echo "Deploying LakeForge to Stage: ${{ parameters.stage }}"
+                    echo "Component: ${{ parameters.component }}"
+                    python -m lakeforge.cli.deploy \
+                      --stage ${{ parameters.stage }} \
+                      --component ${{ parameters.component }} \
+                      $CLIENT_ARG \
+                      $DRY_RUN_ARG
+                  displayName: "Run LakeForge Stage Deployment"
+                  env:
+                    DATABRICKS_HOST: $(DATABRICKS_HOST)
+                    DATABRICKS_TOKEN: $(DATABRICKS_TOKEN)
+                    ARM_CLIENT_ID: $(ARM_CLIENT_ID)
+                    ARM_CLIENT_SECRET: $(ARM_CLIENT_SECRET)
+                    ARM_TENANT_ID: $(ARM_TENANT_ID)
+                    ARM_SUBSCRIPTION_ID: $(ARM_SUBSCRIPTION_ID)

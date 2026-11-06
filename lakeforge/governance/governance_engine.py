@@ -28,11 +28,77 @@ class PrincipalPrivilege:
 
 
 @dataclass
+class MaskingFunction:
+    """Unity Catalog Column Masking function definition."""
+    function_name: str
+    catalog: str
+    schema: str
+    input_column: str
+    input_type: str = "STRING"
+    return_type: str = "STRING"
+    expression: str = ""
+
+    def to_create_function_sql(self) -> str:
+        """Generate CREATE OR REPLACE FUNCTION SQL for column masking."""
+        parts = [p for p in [self.catalog, self.schema, self.function_name] if p]
+        full_func = ".".join(parts)
+        return (
+            f"CREATE OR REPLACE FUNCTION {full_func}({self.input_column} {self.input_type}) "
+            f"RETURNS {self.return_type} "
+            f"RETURN {self.expression}"
+        )
+
+
+@dataclass
+class ColumnMaskAssignment:
+    """Applies a column mask to a table's column."""
+    table_name: str
+    column_name: str
+    function_name: str
+
+    def to_alter_column_mask_sql(self) -> str:
+        """Generate ALTER TABLE ALTER COLUMN SET MASK SQL."""
+        return f"ALTER TABLE {self.table_name} ALTER COLUMN {self.column_name} SET MASK {self.function_name}"
+
+
+@dataclass
+class RowFilter:
+    """Unity Catalog Row-Level Filter definition and assignment."""
+    filter_name: str
+    catalog: str
+    schema: str
+    table_name: str
+    filter_columns: List[str]
+    expression: str
+
+    def to_create_filter_function_sql(self) -> str:
+        """Generate CREATE OR REPLACE FUNCTION SQL for row filtering."""
+        parts = [p for p in [self.catalog, self.schema, self.filter_name] if p]
+        full_func = ".".join(parts)
+        args = ", ".join([f"{col} STRING" for col in self.filter_columns])
+        return (
+            f"CREATE OR REPLACE FUNCTION {full_func}({args}) "
+            f"RETURNS BOOLEAN "
+            f"RETURN {self.expression}"
+        )
+
+    def to_alter_row_filter_sql(self) -> str:
+        """Generate ALTER TABLE SET ROW FILTER SQL."""
+        parts = [p for p in [self.catalog, self.schema, self.filter_name] if p]
+        full_func = ".".join(parts)
+        cols = ", ".join(self.filter_columns)
+        return f"ALTER TABLE {self.table_name} SET ROW FILTER {full_func} ON ({cols})"
+
+
+@dataclass
 class AccessControlConfig:
     """Dataclass holding structured governance rules."""
     roles: Dict[str, Any] = field(default_factory=dict)
     clients: Dict[str, Any] = field(default_factory=dict)
     grants: List[PrincipalPrivilege] = field(default_factory=list)
+    masking_functions: List[MaskingFunction] = field(default_factory=list)
+    column_masks: List[ColumnMaskAssignment] = field(default_factory=list)
+    row_filters: List[RowFilter] = field(default_factory=list)
 
 
 class GovernanceEngine:
@@ -160,10 +226,69 @@ class GovernanceEngine:
                         )
                     )
 
+        # Parse PII Masking Functions
+        masking_funcs: List[MaskingFunction] = []
+        raw_mask_funcs = list(raw_data.get("masking_functions", []))
+        if client_id and client_id in clients:
+            raw_mask_funcs.extend(clients[client_id].get("masking_functions", []))
+
+        for mf in raw_mask_funcs:
+            cat = mf.get("catalog") or target_catalog_name or "lakeforge_dev"
+            masking_funcs.append(
+                MaskingFunction(
+                    function_name=mf["name"],
+                    catalog=cat,
+                    schema=mf.get("schema", "silver"),
+                    input_column=mf.get("input_column", "val"),
+                    input_type=mf.get("input_type", "STRING"),
+                    return_type=mf.get("return_type", "STRING"),
+                    expression=mf.get("expression", "")
+                )
+            )
+
+        # Parse Column Mask Assignments
+        col_masks: List[ColumnMaskAssignment] = []
+        raw_col_masks = list(raw_data.get("column_masks", []))
+        if client_id and client_id in clients:
+            raw_col_masks.extend(clients[client_id].get("column_masks", []))
+
+        for cm in raw_col_masks:
+            tbl = resolve_securable(cm["table"])
+            func = resolve_securable(cm["function"])
+            col_masks.append(
+                ColumnMaskAssignment(
+                    table_name=tbl,
+                    column_name=cm["column"],
+                    function_name=func
+                )
+            )
+
+        # Parse Row Filters
+        row_filters: List[RowFilter] = []
+        raw_row_filters = list(raw_data.get("row_filters", []))
+        if client_id and client_id in clients:
+            raw_row_filters.extend(clients[client_id].get("row_filters", []))
+
+        for rf in raw_row_filters:
+            cat = rf.get("catalog") or target_catalog_name or "lakeforge_dev"
+            row_filters.append(
+                RowFilter(
+                    filter_name=rf["name"],
+                    catalog=cat,
+                    schema=rf.get("schema", "silver"),
+                    table_name=resolve_securable(rf["table"]),
+                    filter_columns=rf.get("filter_columns", []),
+                    expression=rf.get("expression", "true")
+                )
+            )
+
         return AccessControlConfig(
             roles=roles,
             clients=clients,
-            grants=grants
+            grants=grants,
+            masking_functions=masking_funcs,
+            column_masks=col_masks,
+            row_filters=row_filters
         )
 
     def generate_grant_ddl(
@@ -183,6 +308,34 @@ class GovernanceEngine:
                     continue
             statements.append(grant.to_grant_sql())
         return statements
+
+    def generate_masking_ddl(self, config: AccessControlConfig) -> List[str]:
+        """Generate DDL for creating masking functions and attaching masks to columns."""
+        statements = []
+        for mf in config.masking_functions:
+            statements.append(mf.to_create_function_sql())
+        for cm in config.column_masks:
+            statements.append(cm.to_alter_column_mask_sql())
+        return statements
+
+    def generate_row_filter_ddl(self, config: AccessControlConfig) -> List[str]:
+        """Generate DDL for creating row filter functions and attaching them to tables."""
+        statements = []
+        for rf in config.row_filters:
+            statements.append(rf.to_create_filter_function_sql())
+            statements.append(rf.to_alter_row_filter_sql())
+        return statements
+
+    def generate_all_ddl(
+        self,
+        config: AccessControlConfig,
+        target_catalog: Optional[str] = None
+    ) -> List[str]:
+        """Generate all Unity Catalog statements: grants, PII masks, and row-level filters."""
+        grants = self.generate_grant_ddl(config, target_catalog=target_catalog)
+        masks = self.generate_masking_ddl(config)
+        filters = self.generate_row_filter_ddl(config)
+        return grants + masks + filters
 
     def reconcile_permissions(
         self,
@@ -206,7 +359,7 @@ class GovernanceEngine:
             Dict containing execution summary metrics and DDL statements.
         """
         config = self.load_governance_config(config_path_or_dir, client_id=client_id, environment=environment)
-        statements = self.generate_grant_ddl(config, target_catalog=target_catalog)
+        statements = self.generate_all_ddl(config, target_catalog=target_catalog)
 
         executed = 0
         failed = 0
