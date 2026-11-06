@@ -1,6 +1,7 @@
 """
 LakeForge View Manager Module
 Handles creating temporary and persistent Spark SQL views based on tables or custom queries.
+Supports both Databricks Unity Catalog (3-part namespaces) and standard PySpark (1/2-part namespaces).
 """
 import logging
 from typing import Dict, List, Any, Optional
@@ -30,21 +31,20 @@ class ViewManager:
             config: ViewConfig dataclass instance
         """
         self.logger.info(f"Creating view {config.view_name} (type: {config.view_type})")
+        is_uc = False
         
         # 1. Determine DDL header
         if config.view_type == "temp":
             ddl_prefix = f"CREATE OR REPLACE TEMPORARY VIEW {config.view_name}"
         else:
-            # Ensure catalog and schema exist
+            # Ensure catalog and schema exist if Unity Catalog multi-part namespace is supported
             try:
                 self.spark.sql(f"CREATE CATALOG IF NOT EXISTS {config.catalog}")
-            except Exception as e:
-                self.logger.warning(f"Could not create catalog {config.catalog} (expected in local Spark): {str(e)}")
-                
-            try:
                 self.spark.sql(f"CREATE SCHEMA IF NOT EXISTS {config.catalog}.{config.schema}")
                 ddl_prefix = f"CREATE OR REPLACE VIEW {config.catalog}.{config.schema}.{config.view_name}"
+                is_uc = True
             except Exception as e:
+                self.logger.warning(f"Could not use multi-part catalog {config.catalog} (expected in local/OSS Spark): {str(e)}")
                 # Fallback to local Spark catalog schema (database) creation
                 try:
                     self.spark.sql(f"CREATE SCHEMA IF NOT EXISTS {config.schema}")
@@ -55,10 +55,15 @@ class ViewManager:
             
         # 2. Determine SELECT definition query
         if config.definition_type == "table":
-            # If source table is not qualified (does not contain .), fully qualify it
             source = config.source_table
             if "." not in source:
-                source = f"{config.catalog}.{config.schema}.{source}"
+                if config.view_type == "temp":
+                    # For temp views, source table resolves directly in the current session
+                    source = config.source_table
+                elif is_uc:
+                    source = f"{config.catalog}.{config.schema}.{source}"
+                elif config.schema:
+                    source = f"{config.schema}.{source}"
                 
             cols = "*"
             if config.select_columns:
@@ -68,13 +73,19 @@ class ViewManager:
             if config.filter_condition:
                 sql_def += f" WHERE {config.filter_condition}"
         elif config.definition_type == "query":
-            # Interpolate custom query with any environment configurations
+            # Interpolate custom query with environment configurations
             sql_def = config.query
             if self.env_config:
                 try:
                     sql_def = sql_def.format(**self.env_config)
                 except KeyError as ke:
                     self.logger.warning(f"Key {ke} not found in environment config for view query interpolation")
+            
+            # If running in local/OSS Spark (non-UC), strip multi-part catalog references if present
+            if not is_uc and config.catalog:
+                cat_prefix = f"{config.catalog}."
+                if cat_prefix in sql_def:
+                    sql_def = sql_def.replace(cat_prefix, "")
         else:
             raise ValueError(f"Invalid view definition_type: {config.definition_type}")
             

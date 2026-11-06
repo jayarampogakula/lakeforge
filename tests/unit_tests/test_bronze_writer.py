@@ -5,19 +5,9 @@ import sys
 import pytest
 has_real_pyspark = getattr(sys, "has_real_pyspark", True)
 pytestmark = pytest.mark.skipif(not has_real_pyspark, reason="Requires real PySpark")
-from pyspark.sql import SparkSession, Row
+from pyspark.sql import Row
 from lakeforge.bronze.bronze_writer import BronzeWriter, create_bronze_writer
 
-@pytest.fixture(scope="session")
-def spark():
-    """Local SparkSession fixture for testing."""
-    session = SparkSession.builder \
-        .master("local[1]") \
-        .appName("LakeForge-BronzeWriter-Tests") \
-        .config("spark.sql.shuffle.partitions", "1") \
-        .getOrCreate()
-    yield session
-    session.stop()
 
 def test_bronze_writer_add_audit_columns(spark):
     writer = create_bronze_writer(spark)

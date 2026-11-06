@@ -5,20 +5,10 @@ import sys
 import pytest
 has_real_pyspark = getattr(sys, "has_real_pyspark", True)
 pytestmark = pytest.mark.skipif(not has_real_pyspark, reason="Requires real PySpark")
-from pyspark.sql import SparkSession, Row
+from pyspark.sql import Row
 from lakeforge.views.view_manager import ViewManager, create_view_manager
 from lakeforge.metadata.config_parser import ViewConfig
 
-@pytest.fixture(scope="session")
-def spark():
-    """Local SparkSession fixture for testing."""
-    session = SparkSession.builder \
-        .master("local[1]") \
-        .appName("LakeForge-ViewManager-Tests") \
-        .config("spark.sql.shuffle.partitions", "1") \
-        .getOrCreate()
-    yield session
-    session.stop()
 
 def test_create_temp_view_table(spark):
     view_manager = create_view_manager(spark)
@@ -57,10 +47,11 @@ def test_create_persistent_view_query(spark):
     env_config = {"catalog": "local_cat", "gold_schema": "test_gold"}
     view_manager = create_view_manager(spark, env_config)
     
-    # Create mock table inside default schema
+    # Create persistent table inside test_gold schema
     data = [Row(id=1, total_spent=150.00), Row(id=2, total_spent=50.00)]
     df = spark.createDataFrame(data)
-    df.createOrReplaceTempView("customer_summary")
+    spark.sql("CREATE SCHEMA IF NOT EXISTS test_gold")
+    df.write.mode("overwrite").saveAsTable("test_gold.customer_summary")
     
     # Configure a persistent view using query type
     config = ViewConfig(
@@ -69,11 +60,11 @@ def test_create_persistent_view_query(spark):
         schema="test_gold",
         definition_type="query",
         view_type="persistent",
-        # Custom query with environment placeholder (falls back to local schema default inside spark catalog view creation)
-        query="SELECT id FROM customer_summary WHERE total_spent > 100.00"
+        # Custom query with environment placeholders (interpolated and adjusted for local/OSS Spark)
+        query="SELECT id FROM {catalog}.{gold_schema}.customer_summary WHERE total_spent > 100.00"
     )
     
-    # Create view (will fall back to creating in test_gold schema locally)
+    # Create view
     view_manager.create_view(config)
     
     # Verify results
@@ -82,3 +73,7 @@ def test_create_persistent_view_query(spark):
     
     assert len(rows) == 1
     assert rows[0]["id"] == 1
+
+    # Cleanup
+    spark.sql("DROP VIEW IF EXISTS test_gold.v_vip_customers")
+    spark.sql("DROP TABLE IF EXISTS test_gold.customer_summary")

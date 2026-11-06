@@ -5,21 +5,9 @@ import sys
 import pytest
 has_real_pyspark = getattr(sys, "has_real_pyspark", True)
 pytestmark = pytest.mark.skipif(not has_real_pyspark, reason="Requires real PySpark")
-from pyspark.sql import SparkSession, Row
-from pyspark.sql.types import StructType, StructField, StringType, IntegerType
+from pyspark.sql import Row
 from lakeforge.dq.dq_engine import DQEngine, create_dq_engine
 
-@pytest.fixture(scope="session")
-def spark():
-    """Local SparkSession fixture for testing."""
-    session = SparkSession.builder \
-        .master("local[1]") \
-        .appName("LakeForge-DQ-Tests") \
-        .config("spark.sql.shuffle.partitions", "1") \
-        .config("spark.default.parallelism", "1") \
-        .getOrCreate()
-    yield session
-    session.stop()
 
 def test_null_check(spark):
     dq = create_dq_engine(spark)
@@ -35,6 +23,7 @@ def test_null_check(spark):
     res_pass = dq.run_null_check(df, "name", threshold=0.5)
     assert res_pass["passed"] is True
 
+
 def test_duplicate_check(spark):
     dq = create_dq_engine(spark)
     data = [Row(id=1, val="A"), Row(id=1, val="B"), Row(id=2, val="C")]
@@ -48,6 +37,7 @@ def test_duplicate_check(spark):
     # Duplicates on both id and val: should pass (all rows unique)
     res_pass = dq.run_duplicate_check(df, ["id", "val"], allow_duplicates=False)
     assert res_pass["passed"] is True
+
 
 def test_regex_check(spark):
     dq = create_dq_engine(spark)
@@ -64,6 +54,7 @@ def test_regex_check(spark):
     res_pass = dq.run_regex_check(df, "email", pattern, threshold=0.5)
     assert res_pass["passed"] is True
 
+
 def test_range_check(spark):
     dq = create_dq_engine(spark)
     data = [Row(val=10), Row(val=20), Row(val=30)]
@@ -77,6 +68,7 @@ def test_range_check(spark):
     res_pass = dq.run_range_check(df, "val", min_value=10, max_value=35, threshold=1.0)
     assert res_pass["passed"] is True
 
+
 def test_datatype_check(spark):
     dq = create_dq_engine(spark)
     data = [Row(id=1, name="Alice")]
@@ -87,6 +79,7 @@ def test_datatype_check(spark):
     
     res_fail = dq.run_datatype_check(df, "name", "int")
     assert res_fail["passed"] is False
+
 
 def test_allowed_values_check(spark):
     dq = create_dq_engine(spark)
@@ -99,6 +92,7 @@ def test_allowed_values_check(spark):
     
     res_pass = dq.run_allowed_values_check(df, "status", allowed + ["Pending"])
     assert res_pass["passed"] is True
+
 
 def test_null_rate_threshold_check(spark):
     dq = create_dq_engine(spark)

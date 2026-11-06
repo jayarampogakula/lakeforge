@@ -32,7 +32,17 @@ class SilverTransformer:
             return df
 
         elif isinstance(schema_def, str):
-            # Parse Spark SQL DDL string
+            # Parse Spark SQL DDL string via active SparkSession or StructType
+            try:
+                spark_sess = getattr(df, "sparkSession", None)
+                if spark_sess:
+                    parsed = spark_sess.createDataFrame([], schema=schema_def).schema
+                    select_exprs = [col(f.name).cast(f.dataType).alias(f.name) for f in parsed.fields if f.name in df.columns]
+                    if select_exprs:
+                        return df.select(*select_exprs)
+            except Exception:
+                pass
+
             try:
                 from pyspark.sql.types import _parse_datatype_string, StructType
                 parsed = _parse_datatype_string(schema_def)

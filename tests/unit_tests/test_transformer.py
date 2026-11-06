@@ -5,19 +5,9 @@ import sys
 import pytest
 has_real_pyspark = getattr(sys, "has_real_pyspark", True)
 pytestmark = pytest.mark.skipif(not has_real_pyspark, reason="Requires real PySpark")
-from pyspark.sql import SparkSession, Row
+from pyspark.sql import Row
 from lakeforge.silver.transformer import SilverTransformer
 
-@pytest.fixture(scope="session")
-def spark():
-    """Local SparkSession fixture for testing."""
-    session = SparkSession.builder \
-        .master("local[1]") \
-        .appName("LakeForge-Transformer-Tests") \
-        .config("spark.sql.shuffle.partitions", "1") \
-        .getOrCreate()
-    yield session
-    session.stop()
 
 def test_silver_transformer_cast(spark):
     data = [Row(id="1", val="100")]
@@ -123,13 +113,10 @@ def test_silver_transformer_join(spark):
     
     data_right = [Row(id=1, desc="Desc A"), Row(id=2, desc="Desc B")]
     df_right = spark.createDataFrame(data_right)
-    df_right.createOrReplaceTempView("right_table_temp")
     
     # Register right table in catalog
-    spark.sql("CREATE DATABASE IF NOT EXISTS my_db")
-    spark.sql("USE DATABASE my_db")
-    spark.sql("DROP TABLE IF EXISTS my_db.right_table")
-    spark.sql("CREATE TABLE my_db.right_table USING DELTA AS SELECT * FROM right_table_temp")
+    spark.sql("CREATE SCHEMA IF NOT EXISTS my_db")
+    df_right.write.mode("overwrite").saveAsTable("my_db.right_table")
     
     configs = [
         {
