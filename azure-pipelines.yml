@@ -76,7 +76,7 @@ stages:
             displayName: "Execute PyTest Suite"
 
           - script: |
-              python -m lakeforge.cli.validate_configs --config-dir configs
+              lakeforge validate configs --env dev
             displayName: "Validate Metadata Configurations"
 
   - stage: DeployStage
