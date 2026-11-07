@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>LakeForge Docs | Enterprise Data Engineering & Medallion Framework</title>
-  <meta name="description" content="Comprehensive documentation and how-to guides for LakeForge, the enterprise-ready metadata-driven Medallion Lakehouse platform on Databricks.">
+  <title>LakeForge Docs | Complete File & Function Reference Manual</title>
+  <meta name="description" content="Exhaustive documentation, architecture guide, file breakdown, and API function reference manual for LakeForge, the enterprise metadata-driven Medallion Lakehouse platform on Databricks.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
@@ -13,7 +13,7 @@
       --bg-primary: #0b0f17;
       --bg-secondary: #111827;
       --bg-tertiary: #1f2937;
-      --bg-card: rgba(17, 24, 39, 0.7);
+      --bg-card: rgba(17, 24, 39, 0.75);
       --border-color: #273549;
       --border-focus: #3b82f6;
       --text-primary: #f3f4f6;
@@ -28,7 +28,7 @@
       --accent-red: #ef4444;
       --code-bg: #070b12;
       --code-border: #1e293b;
-      --sidebar-width: 290px;
+      --sidebar-width: 300px;
       --header-height: 64px;
       --radius-sm: 6px;
       --radius-md: 10px;
@@ -42,7 +42,7 @@
       --bg-primary: #f8fafc;
       --bg-secondary: #ffffff;
       --bg-tertiary: #f1f5f9;
-      --bg-card: rgba(255, 255, 255, 0.9);
+      --bg-card: rgba(255, 255, 255, 0.95);
       --border-color: #e2e8f0;
       --border-focus: #2563eb;
       --text-primary: #0f172a;
@@ -82,7 +82,7 @@
       left: 0;
       right: 0;
       height: var(--header-height);
-      background: rgba(11, 15, 23, 0.85);
+      background: rgba(11, 15, 23, 0.9);
       backdrop-filter: blur(12px);
       -webkit-backdrop-filter: blur(12px);
       border-bottom: 1px solid var(--border-color);
@@ -93,7 +93,7 @@
       z-index: 100;
     }
     [data-theme="light"] header.top-nav {
-      background: rgba(255, 255, 255, 0.88);
+      background: rgba(255, 255, 255, 0.92);
     }
 
     .brand-logo {
@@ -131,14 +131,14 @@
 
     .search-box {
       position: relative;
-      width: 280px;
+      width: 320px;
     }
     .search-box input {
       width: 100%;
       background: var(--bg-secondary);
       border: 1px solid var(--border-color);
       border-radius: var(--radius-md);
-      padding: 0.45rem 0.75rem 0.45rem 2.2rem;
+      padding: 0.5rem 0.75rem 0.5rem 2.2rem;
       color: var(--text-primary);
       font-size: 0.85rem;
       outline: none;
@@ -200,12 +200,12 @@
       left: 0;
       background: var(--bg-primary);
       border-right: 1px solid var(--border-color);
-      padding: 1.5rem 1rem 2rem 1.25rem;
+      padding: 1.5rem 0.85rem 2rem 1.15rem;
       overflow-y: auto;
       z-index: 50;
     }
     aside.sidebar::-webkit-scrollbar {
-      width: 6px;
+      width: 5px;
     }
     aside.sidebar::-webkit-scrollbar-thumb {
       background: var(--border-color);
@@ -221,7 +221,7 @@
       font-weight: 700;
       color: var(--text-muted);
       letter-spacing: 0.08em;
-      margin-bottom: 0.6rem;
+      margin-bottom: 0.5rem;
       padding-left: 0.5rem;
     }
     .sidebar-nav {
@@ -234,11 +234,11 @@
       display: flex;
       align-items: center;
       gap: 0.6rem;
-      padding: 0.45rem 0.65rem;
+      padding: 0.42rem 0.65rem;
       color: var(--text-secondary);
       text-decoration: none;
       border-radius: var(--radius-sm);
-      font-size: 0.88rem;
+      font-size: 0.86rem;
       font-weight: 500;
       transition: all 0.15s ease;
     }
@@ -252,8 +252,8 @@
       font-weight: 600;
     }
     .sidebar-nav a svg {
-      width: 16px;
-      height: 16px;
+      width: 15px;
+      height: 15px;
       stroke: currentColor;
       fill: none;
       flex-shrink: 0;
@@ -263,20 +263,19 @@
     main.content-area {
       margin-left: var(--sidebar-width);
       flex: 1;
-      padding: 3rem 4rem 6rem;
-      max-width: 1200px;
+      padding: 2.75rem 3.5rem 6rem;
+      max-width: 1240px;
     }
 
     /* Hero / Banner */
     .hero-banner {
-      background: linear-gradient(135deg, rgba(30, 58, 138, 0.3) 0%, rgba(15, 23, 42, 0.8) 100%);
+      background: linear-gradient(135deg, rgba(30, 58, 138, 0.3) 0%, rgba(15, 23, 42, 0.85) 100%);
       border: 1px solid var(--border-color);
       border-radius: var(--radius-lg);
-      padding: 2.75rem 2.5rem;
+      padding: 2.5rem 2.25rem;
       margin-bottom: 3rem;
       box-shadow: var(--shadow-glow);
       position: relative;
-      overflow: hidden;
     }
     [data-theme="light"] .hero-banner {
       background: linear-gradient(135deg, rgba(219, 234, 254, 0.7) 0%, #ffffff 100%);
@@ -312,7 +311,7 @@
     .hero-desc {
       font-size: 1.05rem;
       color: var(--text-secondary);
-      max-width: 780px;
+      max-width: 820px;
       margin-bottom: 1.75rem;
     }
     .hero-pills {
@@ -331,13 +330,13 @@
     }
 
     /* Content Typography */
-    h1, h2, h3, h4 {
+    h1, h2, h3, h4, h5 {
       color: var(--text-primary);
       letter-spacing: -0.02em;
       font-weight: 700;
     }
     h2.section-heading {
-      font-size: 1.75rem;
+      font-size: 1.8rem;
       margin-top: 3.5rem;
       margin-bottom: 1rem;
       padding-bottom: 0.6rem;
@@ -353,10 +352,24 @@
       fill: none;
     }
     h3.sub-heading {
-      font-size: 1.25rem;
-      margin-top: 2rem;
+      font-size: 1.3rem;
+      margin-top: 2.25rem;
       margin-bottom: 0.75rem;
       color: var(--text-primary);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    h4.func-title {
+      font-size: 1.08rem;
+      margin-top: 1.5rem;
+      margin-bottom: 0.4rem;
+      font-family: 'Fira Code', monospace;
+      color: var(--accent-cyan);
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 0.5rem;
     }
     p {
       color: var(--text-secondary);
@@ -375,6 +388,23 @@
       color: var(--text-primary);
     }
 
+    /* Badges & Pills */
+    .badge {
+      display: inline-block;
+      font-size: 0.72rem;
+      font-weight: 600;
+      padding: 2px 7px;
+      border-radius: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .badge-class { background: rgba(139, 92, 246, 0.2); color: #c4b5fd; border: 1px solid rgba(139, 92, 246, 0.35); }
+    .badge-method { background: rgba(59, 130, 246, 0.2); color: #93c5fd; border: 1px solid rgba(59, 130, 246, 0.35); }
+    .badge-func { background: rgba(6, 182, 212, 0.2); color: #67e8f9; border: 1px solid rgba(6, 182, 212, 0.35); }
+    .badge-ret { background: rgba(16, 185, 129, 0.2); color: #6ee7b7; border: 1px solid rgba(16, 185, 129, 0.35); }
+    .badge-cli { background: rgba(245, 158, 11, 0.2); color: #fde68a; border: 1px solid rgba(245, 158, 11, 0.35); }
+    .badge-nb { background: rgba(236, 72, 153, 0.2); color: #fbcfe8; border: 1px solid rgba(236, 72, 153, 0.35); }
+
     /* Cards & Grid */
     .grid-2 {
       display: grid;
@@ -392,7 +422,7 @@
       background: var(--bg-card);
       border: 1px solid var(--border-color);
       border-radius: var(--radius-md);
-      padding: 1.4rem;
+      padding: 1.35rem;
       backdrop-filter: blur(8px);
       transition: transform 0.2s ease, border-color 0.2s ease;
     }
@@ -429,6 +459,42 @@
     .card p {
       font-size: 0.88rem;
       margin-bottom: 0;
+    }
+
+    /* Detailed API Box / Section */
+    .api-card {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 1.5rem;
+      margin: 1.5rem 0 2rem;
+      box-shadow: var(--shadow-sm);
+    }
+    .api-card:hover {
+      border-color: rgba(59, 130, 246, 0.4);
+    }
+    .api-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 0.85rem;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+    .api-signature {
+      font-family: 'Fira Code', monospace;
+      font-size: 0.9rem;
+      background: rgba(0, 0, 0, 0.35);
+      padding: 0.6rem 0.85rem;
+      border-radius: var(--radius-sm);
+      border-left: 3px solid var(--accent-blue);
+      color: #93c5fd;
+      margin-bottom: 1rem;
+      overflow-x: auto;
+    }
+    [data-theme="light"] .api-signature {
+      background: #f1f5f9;
+      color: #1e40af;
     }
 
     /* Callout Alerts */
@@ -559,6 +625,7 @@
       background: rgba(255, 255, 255, 0.03);
       border-bottom: 1px solid var(--code-border);
       padding: 0 0.5rem;
+      overflow-x: auto;
     }
     .tab-btn {
       background: transparent;
@@ -570,6 +637,7 @@
       cursor: pointer;
       border-bottom: 2px solid transparent;
       transition: all 0.15s ease;
+      white-space: nowrap;
     }
     .tab-btn:hover {
       color: var(--text-primary);
@@ -586,20 +654,10 @@
       display: block;
     }
 
-    /* Architecture Diagram Box */
-    .diagram-box {
-      background: var(--bg-secondary);
-      border: 1px solid var(--border-color);
-      border-radius: var(--radius-md);
-      padding: 1.5rem;
-      margin: 1.5rem 0;
-      text-align: center;
-    }
-
     /* Table Styles */
     .table-wrapper {
       overflow-x: auto;
-      margin: 1.5rem 0;
+      margin: 1.25rem 0 1.75rem;
       border: 1px solid var(--border-color);
       border-radius: var(--radius-md);
     }
@@ -615,6 +673,7 @@
       color: var(--text-primary);
       font-weight: 600;
       border-bottom: 1px solid var(--border-color);
+      white-space: nowrap;
     }
     table.data-table td {
       padding: 0.75rem 1rem;
@@ -626,6 +685,47 @@
     }
     table.data-table tr:hover td {
       background: rgba(255, 255, 255, 0.02);
+    }
+
+    /* Expandable Accordion */
+    details.accordion-item {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      margin-bottom: 0.85rem;
+      overflow: hidden;
+      transition: border-color 0.2s ease;
+    }
+    details.accordion-item[open] {
+      border-color: var(--accent-blue);
+    }
+    details.accordion-item summary {
+      padding: 0.9rem 1.25rem;
+      font-weight: 600;
+      font-size: 0.96rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      list-style: none;
+      background: rgba(255, 255, 255, 0.02);
+    }
+    details.accordion-item summary::-webkit-details-marker {
+      display: none;
+    }
+    details.accordion-item summary:after {
+      content: '+';
+      font-size: 1.2rem;
+      color: var(--accent-blue);
+      font-weight: 700;
+      transition: transform 0.2s ease;
+    }
+    details.accordion-item[open] summary:after {
+      content: '−';
+    }
+    .accordion-body {
+      padding: 1.25rem;
+      border-top: 1px solid var(--border-color);
     }
 
     /* Responsive */
@@ -659,7 +759,7 @@
         <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
       </svg>
       <span>LakeForge</span>
-      <span class="version-pill">v1.0 Enterprise</span>
+      <span class="version-pill">v1.0 Complete Manual</span>
     </a>
 
     <div class="nav-actions">
@@ -668,7 +768,7 @@
           <circle cx="11" cy="11" r="8"></circle>
           <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
         </svg>
-        <input type="text" id="docSearch" placeholder="Search guides, APIs, configs..." onkeyup="filterDocs()">
+        <input type="text" id="docSearch" placeholder="Search files, functions, APIs, widgets..." onkeyup="filterDocs()">
       </div>
 
       <button class="btn-icon" id="themeToggle" title="Toggle Light/Dark Theme" onclick="toggleTheme()">
@@ -706,14 +806,23 @@
       </div>
 
       <div class="sidebar-group">
+        <div class="sidebar-title">Reference & Manuals</div>
+        <ul class="sidebar-nav">
+          <li><a href="#repo-file-map"><svg viewBox="0 0 24 24"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg> Complete Repository File Map</a></li>
+          <li><a href="#api-function-reference"><svg viewBox="0 0 24 24"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg> Functions & Class Reference</a></li>
+          <li><a href="#notebooks-guide"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg> Databricks Notebooks Guide</a></li>
+          <li><a href="#configs-schema-dictionary"><svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg> Config Schema Dictionary</a></li>
+        </ul>
+      </div>
+
+      <div class="sidebar-group">
         <div class="sidebar-title">Enterprise Architecture</div>
         <ul class="sidebar-nav">
           <li><a href="#multi-tenancy"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg> Multi-Tenant Scoping</a></li>
-          <li><a href="#bronze-layer"><svg viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path></svg> Bronze Ingestion & Evolution</a></li>
+          <li><a href="#bronze-layer"><svg viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path></svg> Bronze & Schema Drift</a></li>
           <li><a href="#dq-engine"><svg viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg> Data Quality & Quarantine</a></li>
           <li><a href="#silver-layer"><svg viewBox="0 0 24 24"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg> Silver Cleansing & SCD-2</a></li>
-          <li><a href="#gold-layer"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><path d="M8 14s1.5 2 4 2 4-2 4-2"></path><line x1="9" y1="9" x2="9.01" y2="9"></line><line x1="15" y1="9" x2="15.01" y2="9"></line></svg> Gold Aggregation Marts</a></li>
-          <li><a href="#views-manager"><svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg> On-Demand Views</a></li>
+          <li><a href="#gold-layer"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><path d="M8 14s1.5 2 4 2 4-2 4-2"></path></svg> Gold Marts & Views</a></li>
         </ul>
       </div>
 
@@ -735,273 +844,625 @@
       <section class="hero-banner" id="overview">
         <div class="hero-badge">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
-          Enterprise Production Framework
+          Enterprise Reference Manual & Architecture
         </div>
         <h1 class="hero-title">LakeForge Documentation</h1>
         <p class="hero-desc">
-          LakeForge is a unified, metadata-driven Medallion Lakehouse platform built for Apache Spark, Delta Lake, and Databricks Unity Catalog. Build, govern, validate, optimize, and deploy multi-tenant data pipelines using declarative JSON configurations.
+          Comprehensive, deep-dive reference manual for LakeForge: a unified, metadata-driven Medallion Lakehouse platform built for Apache Spark, Delta Lake, and Databricks Unity Catalog. Understand every file, every class, every function, and every JSON configuration.
         </p>
         <div class="hero-pills">
-          <span class="feature-tag">🛡️ Unity Catalog RBAC</span>
-          <span class="feature-tag">🔒 Fine-Grained PII Masking</span>
-          <span class="feature-tag">⚡ Automated OPTIMIZE & VACUUM</span>
-          <span class="feature-tag">🔄 Schema Drift & Evolution</span>
+          <span class="feature-tag">📂 100% File-by-File Breakdown</span>
+          <span class="feature-tag">⚙️ Class & Function Signatures</span>
+          <span class="feature-tag">🛡️ Unity Catalog RBAC & PII Masking</span>
+          <span class="feature-tag">⚡ OPTIMIZE & VACUUM Maintenance</span>
+          <span class="feature-tag">🔄 Strict / Allow / Quarantine Drift</span>
           <span class="feature-tag">🏢 Multi-Tenant Client Scoping</span>
           <span class="feature-tag">🚀 Azure DevOps & GitHub CI/CD</span>
         </div>
       </section>
 
-      <!-- Architecture Overview -->
-      <section>
+      <!-- Complete Repository File Map -->
+      <section id="repo-file-map">
         <h2 class="section-heading">
-          <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
-          Enterprise Medallion Architecture
+          <svg viewBox="0 0 24 24"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+          Complete Repository File Map & Roles
         </h2>
         <p>
-          LakeForge decouples pipeline orchestration from ETL execution. Generic, parameterized Databricks notebooks read structured JSON metadata to dynamically ingest, clean, aggregate, govern, and maintain Delta tables across stages.
+          Every file in LakeForge has a dedicated single responsibility. The table below lists all core files across the repository, explaining exactly what they do, when they run, and how they interact:
         </p>
-
-        <div class="grid-3">
-          <div class="card">
-            <div class="card-icon icon-cyan">
-              <svg viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path></svg>
-            </div>
-            <h4>Bronze Ingestion</h4>
-            <p>High-throughput ingestion with audit stamping (<code>_ingestion_timestamp</code>, <code>_record_hash</code>), file tracking, and configurable schema drift policies.</p>
-          </div>
-
-          <div class="card">
-            <div class="card-icon icon-teal">
-              <svg viewBox="0 0 24 24"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>
-            </div>
-            <h4>Silver Transformation</h4>
-            <p>Declarative casting, standardization, deduplication, lookup joins, DDL schema enforcement, and SCD Type 2 history preservation.</p>
-          </div>
-
-          <div class="card">
-            <div class="card-icon icon-amber">
-              <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><path d="M8 14s1.5 2 4 2 4-2 4-2"></path></svg>
-            </div>
-            <h4>Gold Marts & Views</h4>
-            <p>Metric rollups, multi-table business aggregations, and decoupled on-demand Unity Catalog view creation.</p>
-          </div>
-        </div>
-
-        <div class="grid-2">
-          <div class="card">
-            <div class="card-icon icon-purple">
-              <svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
-            </div>
-            <h4>Centralized Governance</h4>
-            <p>Single configuration (<code>access_control.json</code>) enforcing RBAC grants, dynamic PII column masking, and row-level security across Unity Catalog.</p>
-          </div>
-
-          <div class="card">
-            <div class="card-icon icon-green">
-              <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
-            </div>
-            <h4>Automated Maintenance</h4>
-            <p>Automated <code>OPTIMIZE</code>, Z-ORDER co-location, <code>VACUUM</code> retention, and CBO <code>ANALYZE TABLE</code> statistics computation.</p>
-          </div>
-        </div>
-      </section>
-
-      <!-- Quickstart Section -->
-      <section id="quickstart">
-        <h2 class="section-heading">
-          <svg viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
-          5-Minute Quickstart
-        </h2>
-        <p>Follow these steps to initialize your project, validate configurations, and deploy to your Databricks Lakehouse.</p>
-
-        <div class="tab-group">
-          <div class="tab-nav">
-            <button class="tab-btn active" onclick="switchTab(event, 'tab-install')">1. Install Package</button>
-            <button class="tab-btn" onclick="switchTab(event, 'tab-validate')">2. Validate Configs</button>
-            <button class="tab-btn" onclick="switchTab(event, 'tab-deploy')">3. Deploy Stage</button>
-          </div>
-
-          <div class="tab-panel active" id="tab-install">
-            <div class="code-container" style="border:none; margin:0;">
-              <div class="code-header">
-                <span class="code-title">Terminal / Bash</span>
-                <button class="btn-copy" onclick="copyCode(this)"><svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg> Copy</button>
-              </div>
-              <pre><code># Clone repository
-git clone https://github.com/jayarampogakula/lakeforge.git
-cd lakeforge
-
-# Install core CLI and optional dev dependencies
-pip install -e ".[dev]"</code></pre>
-            </div>
-          </div>
-
-          <div class="tab-panel" id="tab-validate">
-            <div class="code-container" style="border:none; margin:0;">
-              <div class="code-header">
-                <span class="code-title">Terminal / Bash</span>
-                <button class="btn-copy" onclick="copyCode(this)"><svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg> Copy</button>
-              </div>
-              <pre><code># Verify all JSON configuration schemas without requiring Spark
-lakeforge validate --config-dir configs</code></pre>
-            </div>
-          </div>
-
-          <div class="tab-panel" id="tab-deploy">
-            <div class="code-container" style="border:none; margin:0;">
-              <div class="code-header">
-                <span class="code-title">Terminal / Bash</span>
-                <button class="btn-copy" onclick="copyCode(this)"><svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg> Copy</button>
-              </div>
-              <pre><code># Deploy all assets (configs, notebooks, DABs) to the DEV stage
-lakeforge deploy --stage dev
-
-# Or deploy to production with dry-run verification
-lakeforge deploy --stage prod --dry-run</code></pre>
-            </div>
-          </div>
-        </div>
-
-        <div class="callout callout-tip">
-          <svg viewBox="0 0 24 24"><path d="M12 2a7 7 0 0 0-7 7c0 2.38 1.19 4.47 3 5.74V17a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2v-2.26c1.81-1.27 3-3.36 3-5.74a7 7 0 0 0-7-7M9 21a1 1 0 0 0 1 1h4a1 1 0 0 0 1-1v-1H9v1z"/></svg>
-          <div class="callout-content">
-            <strong>Pro Tip: Zero-Spark Validation</strong>
-            The LakeForge CLI uses standard Python libraries to parse and validate JSON metadata, allowing developers to run lightning-fast CI/CD gates on any standard runner without needing a Spark runtime.
-          </div>
-        </div>
-      </section>
-
-      <!-- Multi-Tenancy -->
-      <section id="multi-tenancy">
-        <h2 class="section-heading">
-          <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
-          Multi-Tenant Client Scoping
-        </h2>
-        <p>
-          LakeForge supports unlimited enterprise customers or business units without duplicating pipeline code. Supply the <code>client_id</code> parameter when executing jobs or notebooks.
-        </p>
-
-        <h3 class="sub-heading">Config Directory Hierarchy & Fallback</h3>
-        <p>
-          When <code>client_id="client_alpha"</code> is provided, LakeForge first checks the client's dedicated folder. If a specific transformation or DQ rule is not defined there, it seamlessly falls back to global default configurations:
-        </p>
-
-        <div class="code-container">
-          <div class="code-header">
-            <span class="code-title">Directory Tree</span>
-          </div>
-          <pre><code>configs/
-├── clients/
-│   ├── client_alpha/              # Dedicated client tenant
-│   │   ├── ingestion/             # Client-specific source overrides
-│   │   ├── transformations/       # Client-specific Silver business logic
-│   │   ├── aggregations/          # Client-specific Gold reporting marts
-│   │   ├── views/                 # Client-specific View definitions
-│   │   └── governance/            # Client-specific RBAC & catalog overrides
-│   └── client_beta/
-├── ingestion/                     # Global ingestion defaults
-├── transformations/               # Global Silver transformations
-├── aggregations/                  # Global Gold aggregations
-└── governance/                    # Global Unity Catalog RBAC</code></pre>
-        </div>
-
-        <h3 class="sub-heading">Running a Client-Scoped Pipeline</h3>
-        <div class="code-container">
-          <div class="code-header">
-            <span class="code-title">Bash / CLI</span>
-            <button class="btn-copy" onclick="copyCode(this)"><svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg> Copy</button>
-          </div>
-          <pre><code># Run Bronze ingestion for client_alpha
-python -m lakeforge.cli.run_pipeline --layer bronze --name transactions --client client_alpha --env dev
-
-# In Databricks Notebooks, simply set the 'client_id' widget:
-# dbutils.widgets.text("client_id", "client_alpha")</code></pre>
-        </div>
-      </section>
-
-      <!-- Bronze Layer & Schema Evolution -->
-      <section id="bronze-layer">
-        <h2 class="section-heading">
-          <svg viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path></svg>
-          Bronze Ingestion & Schema Evolution
-        </h2>
-        <p>
-          The Bronze layer ingests raw files (CSV, JSON, Excel, Parquet, Avro, ORC) into Delta tables, automatically enriching every record with audit columns and tracking file-level lineage.
-        </p>
-
-        <h3 class="sub-heading">Schema Drift & Evolution Policies</h3>
-        <p>Control how your pipeline handles incoming column drift using the <code>schema_evolution</code> property in your ingestion configuration:</p>
 
         <div class="table-wrapper">
           <table class="data-table">
             <thead>
               <tr>
-                <th>Policy</th>
-                <th>Behavior</th>
-                <th>Use Case</th>
+                <th>Directory / File Path</th>
+                <th>Component Type</th>
+                <th>Role & Execution Lifecycle</th>
               </tr>
             </thead>
             <tbody>
               <tr>
-                <td><code>allow</code> (Default)</td>
-                <td>Applies <code>.option("mergeSchema", "true")</code> to seamlessly adapt target Delta table to new incoming columns.</td>
-                <td>Agile data lakes, rapid API changes, schema evolution.</td>
+                <td><code>lakeforge/bronze/bronze_writer.py</code></td>
+                <td><span class="badge badge-class">Core Writer</span></td>
+                <td>Writes raw data to Delta Bronze tables with audit columns (<code>_ingestion_timestamp</code>, <code>_record_hash</code>), file tracking, and enforces schema drift policies (<code>allow</code>, <code>strict</code>, <code>quarantine</code>).</td>
               </tr>
               <tr>
-                <td><code>strict</code></td>
-                <td>Inspects existing target columns. If unexpected columns appear, it halts ingestion and raises <code>SchemaDriftError</code>.</td>
-                <td>Financial ledgers, regulatory filings, strictly governed tables.</td>
+                <td><code>lakeforge/silver/transformer.py</code></td>
+                <td><span class="badge badge-class">Core Transformer</span></td>
+                <td>Declarative transformation orchestrator. Applies casting, standardization, regex replacement, deduplication, derived columns, joins, and explicit DDL schema casting in the Silver layer.</td>
               </tr>
               <tr>
-                <td><code>quarantine</code></td>
-                <td>Routes records with drifted columns to <code>&lt;table&gt;_quarantine</code> while safely writing conforming columns to the main table.</td>
-                <td>Zero-loss ingestion pipelines requiring immediate investigation.</td>
+                <td><code>lakeforge/silver/scd_type2.py</code></td>
+                <td><span class="badge badge-class">SCD-2 Handler</span></td>
+                <td>Maintains historical change records in Silver dimensions via Delta MERGE with effective dates, expiration timestamps, and active flags.</td>
+              </tr>
+              <tr>
+                <td><code>lakeforge/silver/deduplication.py</code></td>
+                <td><span class="badge badge-class">Deduplicator</span></td>
+                <td>Deduplicates DataFrames across business keys with tie-breaking order (e.g. latest timestamp wins).</td>
+              </tr>
+              <tr>
+                <td><code>lakeforge/silver/merge_engine.py</code></td>
+                <td><span class="badge badge-class">Merge Engine</span></td>
+                <td>Generic Delta Lake upsert engine. Matches on composite primary keys and executes <code>whenMatchedUpdateAll()</code> and <code>whenNotMatchedInsertAll()</code>.</td>
+              </tr>
+              <tr>
+                <td><code>lakeforge/gold/aggregations.py</code></td>
+                <td><span class="badge badge-class">Gold Aggregator</span></td>
+                <td>Computes business KPI metrics, dimensional rollups, multi-table joins, and window analytics for Gold data marts.</td>
+              </tr>
+              <tr>
+                <td><code>lakeforge/views/view_manager.py</code></td>
+                <td><span class="badge badge-class">View Manager</span></td>
+                <td>Generates on-demand Unity Catalog or temporary views for reporting without having to re-run heavy ETL transformations.</td>
+              </tr>
+              <tr>
+                <td><code>lakeforge/governance/governance_engine.py</code></td>
+                <td><span class="badge badge-class">Governance Engine</span></td>
+                <td>Centralized Unity Catalog reconciler. Parses <code>access_control.json</code> to generate RBAC grants, dynamic PII column masks, and row-level filter functions.</td>
+              </tr>
+              <tr>
+                <td><code>lakeforge/maintenance/table_maintenance.py</code></td>
+                <td><span class="badge badge-class">Maintenance Suite</span></td>
+                <td>Delta maintenance manager. Automates <code>OPTIMIZE</code> (with Z-ORDER clustering), <code>VACUUM</code> file retention purging, and <code>ANALYZE TABLE</code> CBO statistics.</td>
+              </tr>
+              <tr>
+                <td><code>lakeforge/dq/dq_engine.py</code></td>
+                <td><span class="badge badge-class">Data Quality</span></td>
+                <td>Validates DataFrames against business rules (null checks, regex, ranges, allowed values, cross-platform datatypes) and isolates bad records into quarantine.</td>
+              </tr>
+              <tr>
+                <td><code>lakeforge/ingestion/universal_loader.py</code></td>
+                <td><span class="badge badge-class">Universal Loader</span></td>
+                <td>Dispatches file reading across CSV, Excel, JSON, Parquet, Avro, ORC, XML, Delta, and Fixed-Width Text with schema auto-inference.</td>
+              </tr>
+              <tr>
+                <td><code>lakeforge/metadata/config_parser.py</code></td>
+                <td><span class="badge badge-class">Config Parser</span></td>
+                <td>Parses and merges all JSON configs. Resolves multi-tenant client inheritance (<code>client_id</code>) and environment stages (<code>dev</code>, <code>test</code>, <code>staging</code>, <code>prod</code>).</td>
+              </tr>
+              <tr>
+                <td><code>lakeforge/observability/metrics.py</code></td>
+                <td><span class="badge badge-class">Audit Ledger</span></td>
+                <td>Records run-level operational statistics (rows read, rows written, duration, status) into an append-only Delta audit ledger.</td>
+              </tr>
+              <tr>
+                <td><code>lakeforge/observability/alerts.py</code></td>
+                <td><span class="badge badge-class">Alert Dispatcher</span></td>
+                <td>Formats and sends alert webhooks to Slack or Microsoft Teams upon pipeline errors or severe DQ threshold breaches.</td>
+              </tr>
+              <tr>
+                <td><code>lakeforge/observability/lineage.py</code></td>
+                <td><span class="badge badge-class">Lineage Tracker</span></td>
+                <td>Tracks upstream source files, intermediary tables, and downstream target marts to ensure full data provenance.</td>
+              </tr>
+              <tr>
+                <td><code>lakeforge/cli/run_pipeline.py</code></td>
+                <td><span class="badge badge-cli">CLI Dispatched</span></td>
+                <td>Dispatches pipeline execution from terminal: <code>--layer bronze|silver|gold|views|governance|maintenance</code>.</td>
+              </tr>
+              <tr>
+                <td><code>lakeforge/cli/deploy.py</code></td>
+                <td><span class="badge badge-cli">CLI Deployer</span></td>
+                <td>Stages and deploys LakeForge metadata configs, notebooks, and Asset Bundles to target Databricks workspaces.</td>
+              </tr>
+              <tr>
+                <td><code>lakeforge/cli/validate_config.py</code></td>
+                <td><span class="badge badge-cli">CLI Validator</span></td>
+                <td>Zero-Spark schema validator. Validates all JSON configs locally in CI/CD before any code is deployed to cloud environments.</td>
+              </tr>
+              <tr>
+                <td><code>lakeforge/cli/init_project.py</code></td>
+                <td><span class="badge badge-cli">CLI Scaffolder</span></td>
+                <td>Initializes a new LakeForge project folder with directory skeletons and starter configuration templates.</td>
+              </tr>
+              <tr>
+                <td><code>pipelines/*.ipynb</code> (6 notebooks)</td>
+                <td><span class="badge badge-nb">Databricks Notebooks</span></td>
+                <td>Parameterized, metadata-driven orchestration notebooks for Bronze Ingestion, Silver Transformation, Gold Aggregations, Views Creation, Governance Reconciliation, and Table Maintenance.</td>
+              </tr>
+              <tr>
+                <td><code>azure-pipelines.yml</code></td>
+                <td><span class="badge badge-cli">Azure DevOps</span></td>
+                <td>Multi-stage CI/CD pipeline for Azure DevOps. Executes test validation and automated deployment to <code>dev</code>, <code>test</code>, <code>staging</code>, or <code>prod</code>.</td>
+              </tr>
+              <tr>
+                <td><code>.github/workflows/ci_cd.yml</code></td>
+                <td><span class="badge badge-cli">GitHub Actions</span></td>
+                <td>Multi-stage CI/CD workflow for GitHub Actions with manual <code>workflow_dispatch</code> stage deployment.</td>
+              </tr>
+              <tr>
+                <td><code>databricks.yml</code> & <code>lakeforge_bundle.yml</code></td>
+                <td><span class="badge badge-cli">Asset Bundle (DAB)</span></td>
+                <td>Defines Databricks Asset Bundle specifications, job schedules, compute clusters, and multi-environment targets.</td>
+              </tr>
+              <tr>
+                <td><code>deployment/terraform/</code></td>
+                <td><span class="badge badge-cli">Terraform IaC</span></td>
+                <td>Provisions Unity Catalog catalogs, schemas, volumes, and storage credentials across stages (<code>dev.tfvars</code>, <code>test.tfvars</code>, etc.).</td>
+              </tr>
+              <tr>
+                <td><code>tests/unit_tests/*.py</code></td>
+                <td><span class="badge badge-func">Unit Tests</span></td>
+                <td>Automated PyTest suite covering 54 test assertions across all layers, multi-tenancy, drift policies, and table maintenance.</td>
               </tr>
             </tbody>
           </table>
         </div>
+      </section>
 
-        <h3 class="sub-heading">Sample Ingestion Configuration</h3>
-        <div class="code-container">
-          <div class="code-header">
-            <span class="code-title">configs/ingestion/transactions.json</span>
-            <button class="btn-copy" onclick="copyCode(this)"><svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg> Copy</button>
+      <!-- Deep Dive API Reference -->
+      <section id="api-function-reference">
+        <h2 class="section-heading">
+          <svg viewBox="0 0 24 24"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>
+          Exhaustive Functions & Class Reference Manual
+        </h2>
+        <p>
+          Detailed technical documentation for every class and method in the <code>lakeforge</code> package, including input parameters, defaults, return types, and practical usage examples.
+        </p>
+
+        <!-- Module 1: Bronze Writer -->
+        <h3 class="sub-heading">1. Bronze Layer (<a href="file:///d:/lakeforge/lakeforge/bronze/bronze_writer.py"><code>lakeforge.bronze.bronze_writer</code></a>)</h3>
+
+        <div class="api-card">
+          <div class="api-header">
+            <h4><span class="badge badge-class">Class</span> BronzeWriter(spark: SparkSession)</h4>
+            <span class="badge badge-ret">Returns BronzeWriter</span>
           </div>
-          <pre><code>{
+          <p>Instantiates the Bronze Writer engine responsible for appending or merging raw records into Delta Lake tables, maintaining file trackers, and evaluating schema drift.</p>
+          
+          <h4 class="func-title">add_audit_columns</h4>
+          <div class="api-signature">add_audit_columns(df: DataFrame, add_hash_key: bool = True, hash_columns: Optional[List[str]] = None, add_ingestion_timestamp: bool = True, add_ingestion_date: bool = True, add_source_system: bool = True, source_system: str = "unknown") -> DataFrame</div>
+          <p>Enriches an incoming raw DataFrame with standardized operational audit columns before saving to Delta Lake.</p>
+          <div class="table-wrapper">
+            <table class="data-table">
+              <thead><tr><th>Parameter</th><th>Type</th><th>Default</th><th>Description</th></tr></thead>
+              <tbody>
+                <tr><td><code>df</code></td><td><code>DataFrame</code></td><td>Required</td><td>Input raw PySpark DataFrame.</td></tr>
+                <tr><td><code>add_hash_key</code></td><td><code>bool</code></td><td><code>True</code></td><td>Generates an MD5 <code>_record_hash</code> column over specified or all non-audit columns for deduplication.</td></tr>
+                <tr><td><code>hash_columns</code></td><td><code>List[str]</code></td><td><code>None</code></td><td>Specific column names to hash. If <code>None</code>, all non-underscore columns are used.</td></tr>
+                <tr><td><code>add_ingestion_timestamp</code></td><td><code>bool</code></td><td><code>True</code></td><td>Adds <code>_ingestion_timestamp</code> (Spark <code>current_timestamp()</code>).</td></tr>
+                <tr><td><code>add_ingestion_date</code></td><td><code>bool</code></td><td><code>True</code></td><td>Adds <code>_ingestion_date</code> (Spark <code>to_date(current_timestamp())</code>).</td></tr>
+                <tr><td><code>add_source_system</code></td><td><code>bool</code></td><td><code>True</code></td><td>Adds <code>_source_system</code> string literal.</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h4 class="func-title">write_to_bronze</h4>
+          <div class="api-signature">write_to_bronze(df: DataFrame, target_table: str, catalog: str, schema: str, mode: str = "append", partition_by: Optional[List[str]] = None, add_audit_columns: bool = True, source_system: str = "unknown", merge_keys: Optional[List[str]] = None, optimize_after_write: bool = False, z_order_by: Optional[List[str]] = None, schema_evolution: str = "allow") -> Dict[str, Any]</div>
+          <p>Writes data to a Delta Lake table with schema drift detection and optional in-line optimization.</p>
+          <div class="table-wrapper">
+            <table class="data-table">
+              <thead><tr><th>Parameter</th><th>Type</th><th>Default</th><th>Description</th></tr></thead>
+              <tbody>
+                <tr><td><code>target_table</code></td><td><code>str</code></td><td>Required</td><td>Target table name without catalog/schema prefix.</td></tr>
+                <tr><td><code>catalog</code></td><td><code>str</code></td><td>Required</td><td>Target catalog name (e.g. <code>lakeforge_dev</code>).</td></tr>
+                <tr><td><code>schema</code></td><td><code>str</code></td><td>Required</td><td>Target schema name (e.g. <code>bronze</code>).</td></tr>
+                <tr><td><code>mode</code></td><td><code>str</code></td><td><code>"append"</code></td><td>Write mode: <code>"append"</code>, <code>"overwrite"</code>, or <code>"merge"</code>.</td></tr>
+                <tr><td><code>schema_evolution</code></td><td><code>str</code></td><td><code>"allow"</code></td><td>Policy: <code>"allow"</code> (merges schema), <code>"strict"</code> (raises <code>SchemaDriftError</code> if unexpected columns appear), <code>"quarantine"</code> (diverts drifted rows to <code>&lt;table&gt;_quarantine</code>).</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Module 2: Silver Transformer -->
+        <h3 class="sub-heading">2. Silver Transformations (<a href="file:///d:/lakeforge/lakeforge/silver/transformer.py"><code>lakeforge.silver.transformer</code></a>)</h3>
+
+        <div class="api-card">
+          <div class="api-header">
+            <h4><span class="badge badge-class">Class</span> SilverTransformer</h4>
+            <span class="badge badge-ret">Static Transformation Engine</span>
+          </div>
+          <p>Contains declarative transformation processors for cleansing, casting, standardizing, and deduplicating Bronze records into Silver tables.</p>
+          
+          <h4 class="func-title">transform</h4>
+          <div class="api-signature">transform(df: DataFrame, transformations: List[Dict[str, Any]], spark: Optional[SparkSession] = None) -> DataFrame</div>
+          <p>Executes an ordered pipeline of transformation steps defined in JSON configuration against a DataFrame.</p>
+
+          <h4 class="func-title">Supported Transformation Types & Handlers</h4>
+          <div class="table-wrapper">
+            <table class="data-table">
+              <thead><tr><th>Transformation Type</th><th>Internal Method</th><th>Parameters</th><th>Action</th></tr></thead>
+              <tbody>
+                <tr><td><code>standardize</code></td><td><code>_apply_standardize</code></td><td><code>columns</code>, <code>case</code> ("upper", "lower", "title"), <code>trim</code></td><td>Cleans strings, trims whitespace, standardizes casing.</td></tr>
+                <tr><td><code>cast</code></td><td><code>_apply_cast</code></td><td><code>columns</code>: <code>{col: target_type}</code></td><td>Casts individual columns to specific Spark datatypes.</td></tr>
+                <tr><td><code>derived_column</code></td><td><code>_apply_derived_column</code></td><td><code>column_name</code>, <code>expression</code></td><td>Evaluates SQL expressions to calculate new columns.</td></tr>
+                <tr><td><code>filter</code></td><td><code>_apply_filter</code></td><td><code>condition</code></td><td>Applies SQL boolean filter predicates (e.g. <code>id > 0</code>).</td></tr>
+                <tr><td><code>deduplicate</code></td><td><code>_apply_deduplicate</code></td><td><code>key_columns</code>, <code>order_by</code>, <code>order</code></td><td>Window partition deduplication keeping latest record.</td></tr>
+                <tr><td><code>join</code></td><td><code>_apply_join</code></td><td><code>target_table</code>, <code>join_keys</code>, <code>join_type</code>, <code>select_columns</code></td><td>Enriches incoming stream with dimension lookup tables.</td></tr>
+                <tr><td><code>enforce_schema</code></td><td><code>_apply_enforce_schema</code></td><td><code>schema</code> (DDL string)</td><td>Forces exact schema compliance using a SQL DDL string.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Module 3: Unity Catalog Governance Engine -->
+        <h3 class="sub-heading">3. Centralized Governance & Security (<a href="file:///d:/lakeforge/lakeforge/governance/governance_engine.py"><code>lakeforge.governance.governance_engine</code></a>)</h3>
+
+        <div class="api-card">
+          <div class="api-header">
+            <h4><span class="badge badge-class">Class</span> GovernanceEngine(spark: Optional[SparkSession] = None)</h4>
+            <span class="badge badge-ret">Governance Engine</span>
+          </div>
+          <p>Centralizes all Unity Catalog permission enforcement, SQL GRANT generation, PII column masking, and row-level filtering.</p>
+
+          <h4 class="func-title">load_governance_config</h4>
+          <div class="api-signature">load_governance_config(config_path_or_dir: str, client_id: Optional[str] = None, environment: Optional[str] = None) -> AccessControlConfig</div>
+          <p>Parses <code>access_control.json</code>, resolves <code>{catalog}</code> tokens against stage settings, and merges client-specific tenant overrides.</p>
+
+          <h4 class="func-title">generate_masking_ddl</h4>
+          <div class="api-signature">generate_masking_ddl(config: AccessControlConfig) -> List[str]</div>
+          <p>Generates Databricks SQL DDL statements for creating dynamic PII masking functions and applying them to table columns:</p>
+          <pre><code>CREATE OR REPLACE FUNCTION lakeforge_dev.silver.mask_email(email STRING) RETURNS STRING RETURN CASE WHEN is_account_group_member('pii_admins') THEN email ELSE concat(substring(email, 1, 2), '****@****.com') END
+ALTER TABLE lakeforge_dev.silver.customers_clean ALTER COLUMN email SET MASK lakeforge_dev.silver.mask_email</code></pre>
+
+          <h4 class="func-title">generate_row_filter_ddl</h4>
+          <div class="api-signature">generate_row_filter_ddl(config: AccessControlConfig) -> List[str]</div>
+          <p>Generates Databricks SQL DDL statements for creating row-level security functions and binding them to tables:</p>
+          <pre><code>CREATE OR REPLACE FUNCTION lakeforge_dev.silver.filter_customers_by_region(region STRING) RETURNS BOOLEAN RETURN is_account_group_member('global_data_access') OR region = current_user()
+ALTER TABLE lakeforge_dev.silver.customers_clean SET ROW FILTER lakeforge_dev.silver.filter_customers_by_region ON (region)</code></pre>
+
+          <h4 class="func-title">reconcile_permissions</h4>
+          <div class="api-signature">reconcile_permissions(config_path_or_dir: str, environment: str = "dev", dry_run: bool = False, target_catalog: Optional[str] = None, client_id: Optional[str] = None) -> Dict[str, Any]</div>
+          <p>Reconciles all grants, masking functions, and row filters. In <code>dry_run=True</code> mode, it audits and returns the statements without applying them.</p>
+        </div>
+
+        <!-- Module 4: Table Maintenance Manager -->
+        <h3 class="sub-heading">4. Table Maintenance Suite (<a href="file:///d:/lakeforge/lakeforge/maintenance/table_maintenance.py"><code>lakeforge.maintenance.table_maintenance</code></a>)</h3>
+
+        <div class="api-card">
+          <div class="api-header">
+            <h4><span class="badge badge-class">Class</span> TableMaintenanceManager(spark: Optional[SparkSession] = None)</h4>
+            <span class="badge badge-ret">Maintenance Manager</span>
+          </div>
+          <p>Automates compaction, clustering, stale log purging, and Cost-Based Optimizer (CBO) statistics computation across Delta tables.</p>
+
+          <h4 class="func-title">optimize_table</h4>
+          <div class="api-signature">optimize_table(table_name: str, zorder_by: Optional[List[str]] = None, where_clause: Optional[str] = None, dry_run: bool = False) -> Dict[str, Any]</div>
+          <p>Executes <code>OPTIMIZE &lt;table&gt; [WHERE &lt;clause&gt;] [ZORDER BY (&lt;columns&gt;)]</code> to compact small files and co-locate data by business keys.</p>
+
+          <h4 class="func-title">vacuum_table</h4>
+          <div class="api-signature">vacuum_table(table_name: str, retain_hours: int = 168, dry_run: bool = False) -> Dict[str, Any]</div>
+          <p>Executes <code>VACUUM &lt;table&gt; RETAIN &lt;hours&gt; HOURS [DRY RUN]</code> to purge unreferenced data files older than retention policy (default: 168 hours / 7 days).</p>
+
+          <h4 class="func-title">analyze_table</h4>
+          <div class="api-signature">analyze_table(table_name: str, columns: Optional[List[str]] = None, dry_run: bool = False) -> Dict[str, Any]</div>
+          <p>Executes <code>ANALYZE TABLE &lt;table&gt; COMPUTE STATISTICS [FOR COLUMNS ...]</code> to refresh table statistics for the Spark Catalyst query optimizer.</p>
+
+          <h4 class="func-title">run_layer_maintenance</h4>
+          <div class="api-signature">run_layer_maintenance(config_dir: str, stage: str = "dev", layer: str = "all", client_id: Optional[str] = None, vacuum_retain_hours: int = 168, dry_run: bool = False) -> Dict[str, Any]</div>
+          <p>Discovers all tables defined in configurations for Bronze, Silver, and Gold layers and performs maintenance on all of them in a single batch.</p>
+        </div>
+
+        <!-- Module 5: Data Quality Engine -->
+        <h3 class="sub-heading">5. Data Quality Engine (<a href="file:///d:/lakeforge/lakeforge/dq/dq_engine.py"><code>lakeforge.dq.dq_engine</code></a>)</h3>
+
+        <div class="api-card">
+          <div class="api-header">
+            <h4><span class="badge badge-class">Class</span> DQEngine(spark: SparkSession)</h4>
+            <span class="badge badge-ret">Data Quality Engine</span>
+          </div>
+          <p>Validates raw DataFrames against declarative rules, computes error counts, and splits data into clean records vs quarantined records.</p>
+
+          <h4 class="func-title">validate_dataframe</h4>
+          <div class="api-signature">validate_dataframe(df: DataFrame, rules: List[Dict[str, Any]]) -> Dict[str, Any]</div>
+          <p>Executes all validation rules against a DataFrame and returns a comprehensive validation summary dictionary containing:</p>
+          <ul>
+            <li><code>valid_df</code>: DataFrame containing only records that passed all critical rules.</li>
+            <li><code>quarantine_df</code>: DataFrame containing rejected records with error tags.</li>
+            <li><code>rules_executed</code>: Total rule count.</li>
+            <li><code>rules_passed</code>: Count of rules with 0 violations.</li>
+            <li><code>quarantine_count</code>: Total row count routed to quarantine.</li>
+          </ul>
+
+          <h4 class="func-title">Individual Rule Methods</h4>
+          <div class="table-wrapper">
+            <table class="data-table">
+              <thead><tr><th>Method</th><th>Parameters</th><th>Verification Logic</th></tr></thead>
+              <tbody>
+                <tr><td><code>run_null_check</code></td><td><code>df</code>, <code>column</code>, <code>threshold=0.0</code></td><td>Fails if null percentage in column exceeds threshold.</td></tr>
+                <tr><td><code>run_duplicate_check</code></td><td><code>df</code>, <code>columns</code></td><td>Detects duplicate primary or composite keys.</td></tr>
+                <tr><td><code>run_range_check</code></td><td><code>df</code>, <code>column</code>, <code>min_value</code>, <code>max_value</code></td><td>Verifies numeric or date values stay within boundaries.</td></tr>
+                <tr><td><code>run_regex_check</code></td><td><code>df</code>, <code>column</code>, <code>pattern</code></td><td>Validates email, phone, or postal codes using regular expressions.</td></tr>
+                <tr><td><code>run_allowed_values_check</code></td><td><code>df</code>, <code>column</code>, <code>allowed_values</code></td><td>Ensures categorical column values belong to a defined whitelist.</td></tr>
+                <tr><td><code>run_datatype_check</code></td><td><code>df</code>, <code>column</code>, <code>expected_type</code></td><td>Cross-platform type family validation (e.g. <code>integer</code> matches <code>int</code>, <code>bigint</code>, <code>long</code>).</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Module 6: Config Parser -->
+        <h3 class="sub-heading">6. Metadata & Config Parser (<a href="file:///d:/lakeforge/lakeforge/metadata/config_parser.py"><code>lakeforge.metadata.config_parser</code></a>)</h3>
+
+        <div class="api-card">
+          <div class="api-header">
+            <h4><span class="badge badge-class">Class</span> ConfigParser</h4>
+            <span class="badge badge-ret">Static Metadata Parser</span>
+          </div>
+          <p>Loads, merges, and validates JSON configurations across environments and multi-tenant clients.</p>
+
+          <h4 class="func-title">Config Resolution Methods</h4>
+          <div class="table-wrapper">
+            <table class="data-table">
+              <thead><tr><th>Method</th><th>Parameters</th><th>Returns</th><th>Description</th></tr></thead>
+              <tbody>
+                <tr><td><code>get_environment_config</code></td><td><code>config_dir_or_file</code>, <code>environment</code></td><td><code>Dict[str, Any]</code></td><td>Returns catalog and schema mappings for target stage (<code>dev</code>, <code>prod</code>, etc.).</td></tr>
+                <tr><td><code>get_ingestion_config</code></td><td><code>config_dir</code>, <code>source_name</code>, <code>env</code>, <code>client_id</code></td><td><code>IngestionConfig</code></td><td>Resolves Bronze ingestion settings with multi-tenant client inheritance.</td></tr>
+                <tr><td><code>get_dq_config</code></td><td><code>config_dir</code>, <code>source_name</code>, <code>env</code>, <code>client_id</code></td><td><code>DQConfig</code></td><td>Resolves Data Quality rules for a dataset.</td></tr>
+                <tr><td><code>get_silver_transformation_config</code></td><td><code>config_dir</code>, <code>target_table</code>, <code>env</code>, <code>client_id</code></td><td><code>Dict[str, Any]</code></td><td>Resolves Silver transformation step definitions.</td></tr>
+                <tr><td><code>get_gold_aggregation_config</code></td><td><code>config_dir</code>, <code>target_table</code>, <code>env</code>, <code>client_id</code></td><td><code>Dict[str, Any]</code></td><td>Resolves Gold aggregation and grouping specs.</td></tr>
+                <tr><td><code>get_view_configs</code></td><td><code>config_dir</code>, <code>env</code>, <code>client_id</code></td><td><code>List[ViewConfig]</code></td><td>Resolves on-demand analytical view definitions.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Module 7: Observability -->
+        <h3 class="sub-heading">7. Observability & Operations (<a href="file:///d:/lakeforge/lakeforge/observability/"><code>lakeforge.observability</code></a>)</h3>
+
+        <div class="api-card">
+          <div class="api-header">
+            <h4><span class="badge badge-class">Package</span> lakeforge.observability</h4>
+            <span class="badge badge-ret">Run Ledger, Alerts & Lineage</span>
+          </div>
+          <p>Provides end-to-end operational visibility, error tracking, and alerting across pipeline runs.</p>
+
+          <h4 class="func-title">MetricsAuditor.record_run</h4>
+          <div class="api-signature">record_run(pipeline_name: str, stage: str, status: str, rows_read: int, rows_written: int, duration_seconds: float, client_id: Optional[str] = None, errors: Optional[List[str]] = None, ledger_table: Optional[str] = None) -> Dict[str, Any]</div>
+          <p>Appends an audit record to the persistent operational ledger Delta table (<code>lakehouse.monitoring.pipeline_run_ledger</code>).</p>
+
+          <h4 class="func-title">AlertDispatcher.dispatch_alert</h4>
+          <div class="api-signature">dispatch_alert(title: str, message: str, severity: str = "ERROR", metadata: Optional[Dict[str, Any]] = None) -> bool</div>
+          <p>Sends an adaptive card or JSON payload to Slack or Microsoft Teams webhooks upon execution or DQ failure.</p>
+        </div>
+
+        <!-- Module 8: CLI -->
+        <h3 class="sub-heading">8. CLI Command Line Interface (<a href="file:///d:/lakeforge/lakeforge/cli/"><code>lakeforge.cli</code></a>)</h3>
+
+        <div class="api-card">
+          <div class="api-header">
+            <h4><span class="badge badge-cli">CLI</span> lakeforge [command]</h4>
+            <span class="badge badge-ret">Terminal Utilities</span>
+          </div>
+          <p>Terminal utilities to initialize, validate, run, and deploy LakeForge pipelines from local shell or CI/CD runners.</p>
+
+          <div class="table-wrapper">
+            <table class="data-table">
+              <thead><tr><th>Command</th><th>Arguments & Flags</th><th>Purpose</th></tr></thead>
+              <tbody>
+                <tr><td><code>lakeforge validate</code></td><td><code>[config_dir] [--env dev] [--client &lt;id&gt;]</code></td><td>Validates JSON syntax, schema completeness, and path references without needing Spark.</td></tr>
+                <tr><td><code>lakeforge deploy</code></td><td><code>--stage &lt;dev|test|staging|prod&gt; [--client &lt;id&gt;] [--dry-run]</code></td><td>Stages and deploys metadata configs, notebooks, and Asset Bundles to Databricks.</td></tr>
+                <tr><td><code>lakeforge run</code></td><td><code>--layer &lt;bronze|silver|gold|views|governance|maintenance&gt; --name &lt;pipeline&gt; [--env dev]</code></td><td>Executes a specific pipeline stage or maintenance job from the command line.</td></tr>
+                <tr><td><code>lakeforge init</code></td><td><code>[target_dir] [--force]</code></td><td>Scaffolds directory skeletons, starter configs, and local project structure.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- Databricks Notebooks Guide -->
+      <section id="notebooks-guide">
+        <h2 class="section-heading">
+          <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
+          Databricks Medallion Notebooks Guide
+        </h2>
+        <p>
+          All data pipelines in LakeForge execute through 6 generic, parameterized notebooks in the <code>pipelines/</code> folder. Each notebook reads its instructions dynamically from JSON configs.
+        </p>
+
+        <div class="table-wrapper">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Notebook Name</th>
+                <th>Required Widgets / Parameters</th>
+                <th>Execution Flow</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong><code>Bronze_Generic_Pipeline.ipynb</code></strong></td>
+                <td>
+                  <code>config_dir</code> (string)<br>
+                  <code>pipeline_name</code> (string, e.g. <code>transactions</code>)<br>
+                  <code>environment</code> (dropdown: <code>dev</code>, <code>test</code>, <code>staging</code>, <code>prod</code>)<br>
+                  <code>client_id</code> (string, optional)<br>
+                  <code>create_views</code> (default: <code>"false"</code>)
+                </td>
+                <td>
+                  1. Reads raw source data via <code>UniversalLoader</code>.<br>
+                  2. Executes Data Quality validations; isolates violations.<br>
+                  3. Injects audit columns (<code>_ingestion_timestamp</code>, <code>_record_hash</code>).<br>
+                  4. Writes to Bronze Delta table under active <code>schema_evolution</code> policy.
+                </td>
+              </tr>
+              <tr>
+                <td><strong><code>SILVER_Transformation_Pipeline.ipynb</code></strong></td>
+                <td>
+                  <code>config_dir</code> (string)<br>
+                  <code>target_table</code> (string, e.g. <code>customers_clean</code>)<br>
+                  <code>source_table</code> (string, optional)<br>
+                  <code>environment</code> (dropdown)<br>
+                  <code>client_id</code> (string, optional)<br>
+                  <code>scd2</code> (dropdown: <code>false</code>, <code>true</code>)
+                </td>
+                <td>
+                  1. Reads cleansed source from Bronze.<br>
+                  2. Executes transformation chain via <code>SilverTransformer</code> (cast, standardize, dedup, join).<br>
+                  3. Performs upsert via <code>SilverMergeEngine</code> or historical merge via <code>SCDType2Handler</code>.
+                </td>
+              </tr>
+              <tr>
+                <td><strong><code>GOLD_Aggregation_Pipeline.ipynb</code></strong></td>
+                <td>
+                  <code>config_dir</code> (string)<br>
+                  <code>target_table</code> (string, e.g. <code>customer_summary</code>)<br>
+                  <code>environment</code> (dropdown)<br>
+                  <code>client_id</code> (string, optional)
+                </td>
+                <td>
+                  1. Reads required Silver tables.<br>
+                  2. Computes group-by aggregations and business KPIs via <code>GoldAggregator</code>.<br>
+                  3. Overwrites or upserts final reporting data mart in Gold.
+                </td>
+              </tr>
+              <tr>
+                <td><strong><code>VIEWS_Creation_Pipeline.ipynb</code></strong></td>
+                <td>
+                  <code>config_dir</code> (string)<br>
+                  <code>environment</code> (dropdown)<br>
+                  <code>view_name</code> (string, optional filter)<br>
+                  <code>client_id</code> (string, optional)
+                </td>
+                <td>
+                  1. Loads view definitions from <code>configs/views/</code>.<br>
+                  2. Runs <strong>on-demand</strong> to create or update Unity Catalog persistent views without re-running heavy ETL jobs.
+                </td>
+              </tr>
+              <tr>
+                <td><strong><code>GOVERNANCE_Security_Pipeline.ipynb</code></strong></td>
+                <td>
+                  <code>config_dir</code> (string)<br>
+                  <code>environment</code> (dropdown)<br>
+                  <code>client_id</code> (string, optional)<br>
+                  <code>target_catalog</code> (string, optional)<br>
+                  <code>dry_run</code> (dropdown: <code>false</code>, <code>true</code>)
+                </td>
+                <td>
+                  1. Loads centralized <code>access_control.json</code>.<br>
+                  2. Generates and executes <code>GRANT</code> statements.<br>
+                  3. Deploys dynamic PII masking functions and column masks.<br>
+                  4. Attaches row-level security filters to tables.
+                </td>
+              </tr>
+              <tr>
+                <td><strong><code>MAINTENANCE_Table_Optimization.ipynb</code></strong></td>
+                <td>
+                  <code>config_dir</code> (string)<br>
+                  <code>stage</code> (dropdown)<br>
+                  <code>layer</code> (dropdown: <code>all</code>, <code>bronze</code>, <code>silver</code>, <code>gold</code>)<br>
+                  <code>table_name</code> (string, optional single-table override)<br>
+                  <code>vacuum_retain_hours</code> (default: <code>"168"</code>)<br>
+                  <code>dry_run</code> (dropdown)
+                </td>
+                <td>
+                  1. Discovers target tables from configurations.<br>
+                  2. Runs <code>OPTIMIZE</code> with Z-ORDER clustering.<br>
+                  3. Purges stale files with <code>VACUUM</code>.<br>
+                  4. Computes CBO statistics using <code>ANALYZE TABLE</code>.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Config Schema Dictionary -->
+      <section id="configs-schema-dictionary">
+        <h2 class="section-heading">
+          <svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
+          Configuration Schema Dictionary
+        </h2>
+        <p>
+          Every configuration in LakeForge is defined in standard JSON. Below are complete, annotated schema references for all configuration categories:
+        </p>
+
+        <details class="accordion-item" open>
+          <summary>1. Environment Settings (configs/environments/env_settings.json)</summary>
+          <div class="accordion-body">
+            <p>Defines stage-specific catalog and schema naming mappings across environments:</p>
+            <div class="code-container">
+              <div class="code-header"><span class="code-title">env_settings.json</span><button class="btn-copy" onclick="copyCode(this)"><svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg> Copy</button></div>
+              <pre><code>{
+  "environments": {
+    "dev": {
+      "catalog": "lakehouse",
+      "bronze_schema": "bronze",
+      "silver_schema": "silver",
+      "gold_schema": "gold",
+      "monitoring_schema": "monitoring"
+    },
+    "test": {
+      "catalog": "lakehouse_test",
+      "bronze_schema": "bronze",
+      "silver_schema": "silver",
+      "gold_schema": "gold",
+      "monitoring_schema": "monitoring"
+    },
+    "staging": {
+      "catalog": "lakehouse_staging",
+      "bronze_schema": "bronze",
+      "silver_schema": "silver",
+      "gold_schema": "gold",
+      "monitoring_schema": "monitoring"
+    },
+    "prod": {
+      "catalog": "lakehouse_prod",
+      "bronze_schema": "bronze",
+      "silver_schema": "silver",
+      "gold_schema": "gold",
+      "monitoring_schema": "monitoring"
+    }
+  }
+}</code></pre>
+            </div>
+          </div>
+        </details>
+
+        <details class="accordion-item">
+          <summary>2. Bronze Ingestion Configuration (configs/ingestion/*.json)</summary>
+          <div class="accordion-body">
+            <p>Specifies how raw landing files are ingested into Bronze Delta tables:</p>
+            <div class="code-container">
+              <div class="code-header"><span class="code-title">ingestion/transactions.json</span><button class="btn-copy" onclick="copyCode(this)"><svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg> Copy</button></div>
+              <pre><code>{
   "source_name": "transactions",
   "source_type": "csv",
   "file_path": "/mnt/lake/landing/transactions/*.csv",
   "target_catalog": "lakeforge_dev",
   "target_schema": "bronze",
   "bronze_table": "transactions",
-  "schema_evolution": "strict",
+  "silver_table": "transactions_clean",
+  "schema_evolution": "strict",     // "allow" | "strict" | "quarantine"
   "business_key": ["transaction_id"],
-  "merge_strategy": "upsert",
+  "merge_strategy": "upsert",       // "append" | "overwrite" | "upsert"
   "options": {
     "header": "true",
     "inferSchema": "true",
     "delimiter": ","
   }
 }</code></pre>
-        </div>
-      </section>
-
-      <!-- Data Quality & Quarantine -->
-      <section id="dq-engine">
-        <h2 class="section-heading">
-          <svg viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
-          Data Quality Engine & Quarantine
-        </h2>
-        <p>
-          Ensure zero bad data enters your analytics layers. LakeForge runs configurable assertions before writing to Bronze or Silver:
-        </p>
-
-        <div class="code-container">
-          <div class="code-header">
-            <span class="code-title">configs/dq/transactions.json</span>
-            <button class="btn-copy" onclick="copyCode(this)"><svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg> Copy</button>
+            </div>
           </div>
-          <pre><code>{
+        </details>
+
+        <details class="accordion-item">
+          <summary>3. Data Quality Rules (configs/dq/*.json)</summary>
+          <div class="accordion-body">
+            <p>Specifies assertion validations executed before committing to Bronze/Silver:</p>
+            <div class="code-container">
+              <div class="code-header"><span class="code-title">dq/transactions.json</span><button class="btn-copy" onclick="copyCode(this)"><svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg> Copy</button></div>
+              <pre><code>{
   "rules": [
     {
       "rule_name": "pk_not_null",
@@ -1011,7 +1472,7 @@ python -m lakeforge.cli.run_pipeline --layer bronze --name transactions --client
       "severity": "critical"
     },
     {
-      "rule_name": "positive_amount",
+      "rule_name": "valid_range",
       "rule_type": "range_check",
       "column": "amount",
       "min_value": 0.01,
@@ -1027,25 +1488,17 @@ python -m lakeforge.cli.run_pipeline --layer bronze --name transactions --client
     }
   ]
 }</code></pre>
-        </div>
-      </section>
-
-      <!-- Silver Layer -->
-      <section id="silver-layer">
-        <h2 class="section-heading">
-          <svg viewBox="0 0 24 24"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>
-          Silver Cleansing, Transformations & SCD-2
-        </h2>
-        <p>
-          Transform raw Bronze data into enterprise-grade cleansed models. LakeForge supports declarative transformations including explicit DDL schema casting:
-        </p>
-
-        <div class="code-container">
-          <div class="code-header">
-            <span class="code-title">configs/transformations/customers_clean.json</span>
-            <button class="btn-copy" onclick="copyCode(this)"><svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg> Copy</button>
+            </div>
           </div>
-          <pre><code>{
+        </details>
+
+        <details class="accordion-item">
+          <summary>4. Silver Transformations (configs/transformations/*.json)</summary>
+          <div class="accordion-body">
+            <p>Specifies column casting, cleansing, standardization, and deduplication:</p>
+            <div class="code-container">
+              <div class="code-header"><span class="code-title">transformations/customers_clean.json</span><button class="btn-copy" onclick="copyCode(this)"><svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg> Copy</button></div>
+              <pre><code>{
   "target_table": "customers_clean",
   "schema": "customer_id INT, first_name STRING, last_name STRING, email STRING, phone STRING, region STRING, created_at TIMESTAMP",
   "transformations": [
@@ -1071,31 +1524,23 @@ python -m lakeforge.cli.run_pipeline --layer bronze --name transactions --client
     }
   ]
 }</code></pre>
-        </div>
-      </section>
-
-      <!-- Governance & PII Masking -->
-      <section id="governance-pii">
-        <h2 class="section-heading">
-          <svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
-          Centralized Unity Catalog Governance & PII Masking
-        </h2>
-        <p>
-          Manage all catalog grants, table permissions, fine-grained PII column masks, and row-level filters in a single central configuration file: <code>configs/governance/access_control.json</code>.
-        </p>
-
-        <div class="code-container">
-          <div class="code-header">
-            <span class="code-title">configs/governance/access_control.json</span>
-            <button class="btn-copy" onclick="copyCode(this)"><svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg> Copy</button>
+            </div>
           </div>
-          <pre><code>{
+        </details>
+
+        <details class="accordion-item">
+          <summary>5. Unity Catalog Governance (configs/governance/access_control.json)</summary>
+          <div class="accordion-body">
+            <p>Centralized RBAC, PII column masking, and row-level filters with <code>{catalog}</code> templating:</p>
+            <div class="code-container">
+              <div class="code-header"><span class="code-title">governance/access_control.json</span><button class="btn-copy" onclick="copyCode(this)"><svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg> Copy</button></div>
+              <pre><code>{
   "roles": {
     "business_analysts": {
       "principals": ["analysts_group"],
-      "catalogs": { "lakeforge_dev": ["USE CATALOG"] },
-      "schemas": { "lakeforge_dev.silver": ["USE SCHEMA"] },
-      "tables": { "lakeforge_dev.silver.customers_clean": ["SELECT"] }
+      "catalogs": { "{catalog}": ["USE CATALOG"] },
+      "schemas": { "{catalog}.silver": ["USE SCHEMA"] },
+      "tables": { "{catalog}.silver.customers_clean": ["SELECT"] }
     }
   },
   "masking_functions": [
@@ -1123,182 +1568,9 @@ python -m lakeforge.cli.run_pipeline --layer bronze --name transactions --client
     }
   ]
 }</code></pre>
-        </div>
-
-        <h3 class="sub-heading">On-Demand Security Pipeline</h3>
-        <p>
-          Governance permissions are reconciled on-demand without impacting daily ETL runs. Execute the dedicated notebook:
-        </p>
-        <div class="code-container">
-          <div class="code-header">
-            <span class="code-title">Databricks Notebook / CLI</span>
-          </div>
-          <pre><code># Run governance reconciliation via CLI
-python -m lakeforge.cli.run_pipeline --layer governance --env prod
-
-# Or execute pipelines/GOVERNANCE_Security_Pipeline.ipynb in Databricks</code></pre>
-        </div>
-      </section>
-
-      <!-- Table Maintenance Suite -->
-      <section id="table-maintenance">
-        <h2 class="section-heading">
-          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
-          Automated Table Maintenance Suite
-        </h2>
-        <p>
-          Prevent Delta file fragmentation and maintain query performance across Bronze, Silver, and Gold layers:
-        </p>
-
-        <div class="grid-3">
-          <div class="card">
-            <h4>OPTIMIZE & Z-ORDER</h4>
-            <p>Compacts small Parquet files into optimal 1GB files and co-locates rows by business keys for fast filter pushdowns.</p>
-          </div>
-          <div class="card">
-            <h4>VACUUM</h4>
-            <p>Safely removes uncommitted files and snapshots older than retention threshold (default: 168 hours / 7 days).</p>
-          </div>
-          <div class="card">
-            <h4>ANALYZE TABLE</h4>
-            <p>Computes statistics across key columns to allow the Spark Cost-Based Optimizer (CBO) to generate ideal join plans.</p>
-          </div>
-        </div>
-
-        <div class="code-container">
-          <div class="code-header">
-            <span class="code-title">Maintenance CLI / Notebook</span>
-            <button class="btn-copy" onclick="copyCode(this)"><svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg> Copy</button>
-          </div>
-          <pre><code># Run full maintenance across all Bronze, Silver, and Gold tables in DEV
-python -m lakeforge.cli.run_pipeline --layer maintenance --env dev
-
-# Or run the dedicated Databricks notebook:
-# pipelines/MAINTENANCE_Table_Optimization.ipynb</code></pre>
-        </div>
-      </section>
-
-      <!-- CI/CD & Azure DevOps -->
-      <section id="cicd-deployment">
-        <h2 class="section-heading">
-          <svg viewBox="0 0 24 24"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>
-          CI/CD & Multi-Stage Deployment
-        </h2>
-        <p>
-          LakeForge is CI/CD-agnostic. Use <strong>Azure DevOps</strong> or <strong>GitHub Actions</strong> with zero code changes.
-        </p>
-
-        <div class="tab-group">
-          <div class="tab-nav">
-            <button class="tab-btn active" onclick="switchTab(event, 'tab-ado')">Azure DevOps (azure-pipelines.yml)</button>
-            <button class="tab-btn" onclick="switchTab(event, 'tab-gh')">GitHub Actions (ci_cd.yml)</button>
-          </div>
-
-          <div class="tab-panel active" id="tab-ado">
-            <div class="code-container" style="border:none; margin:0;">
-              <div class="code-header">
-                <span class="code-title">azure-pipelines.yml</span>
-                <button class="btn-copy" onclick="copyCode(this)"><svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg> Copy</button>
-              </div>
-              <pre><code>trigger:
-  branches:
-    include: [main, release/*]
-
-parameters:
-  - name: stage
-    displayName: "Stage"
-    type: string
-    default: dev
-    values: [dev, test, staging, prod]
-
-stages:
-  - stage: BuildAndTest
-    jobs:
-      - job: TestJob
-        steps:
-          - script: pytest tests/unit_tests/ -v
-          - script: lakeforge validate --config-dir configs
-
-  - stage: DeployStage
-    dependsOn: BuildAndTest
-    jobs:
-      - deployment: DeployJob
-        steps:
-          - script: lakeforge deploy --stage ${{ parameters.stage }}</code></pre>
             </div>
           </div>
-
-          <div class="tab-panel" id="tab-gh">
-            <div class="code-container" style="border:none; margin:0;">
-              <div class="code-header">
-                <span class="code-title">.github/workflows/ci_cd.yml</span>
-                <button class="btn-copy" onclick="copyCode(this)"><svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg> Copy</button>
-              </div>
-              <pre><code>name: LakeForge CI/CD Multi-Stage Pipeline
-on:
-  push:
-    branches: [main]
-  workflow_dispatch:
-    inputs:
-      stage:
-        type: choice
-        options: [dev, test, staging, prod]
-
-jobs:
-  test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - run: pytest tests/unit_tests/ -v
-      - run: lakeforge validate --config-dir configs
-
-  deploy:
-    needs: test
-    runs-on: ubuntu-latest
-    steps:
-      - run: lakeforge deploy --stage ${{ inputs.stage || 'dev' }}</code></pre>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- Observability -->
-      <section id="observability">
-        <h2 class="section-heading">
-          <svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
-          Observability, Run Ledger & Alerts
-        </h2>
-        <p>
-          Every pipeline run records audit metrics (rows read, rows written, DQ violations, duration, status) into an append-only Delta audit ledger (<code>lakehouse.monitoring.pipeline_run_ledger</code>) and dispatches webhook alerts to Slack or Microsoft Teams upon failures.
-        </p>
-
-        <div class="code-container">
-          <div class="code-header">
-            <span class="code-title">Python Observability Example</span>
-            <button class="btn-copy" onclick="copyCode(this)"><svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg> Copy</button>
-          </div>
-          <pre><code>from lakeforge.observability.metrics import MetricsAuditor
-from lakeforge.observability.alerts import AlertDispatcher
-
-# Record run ledger entry
-auditor = MetricsAuditor(spark=spark)
-auditor.record_run(
-    pipeline_name="transactions_bronze",
-    stage="dev",
-    status="SUCCESS",
-    rows_read=150000,
-    rows_written=149850,
-    duration_seconds=42.5
-)
-
-# Dispatch alert on failure
-dispatcher = AlertDispatcher(webhook_url="https://hooks.slack.com/services/...")
-dispatcher.dispatch_alert(
-    title="Data Quality Failure",
-    message="150 records quarantined due to invalid transaction amounts.",
-    severity="ERROR"
-)</code></pre>
-        </div>
+        </details>
       </section>
 
     </main>
@@ -1334,15 +1606,18 @@ dispatcher.dispatch_alert(
     // Search filter across documentation sections
     function filterDocs() {
       const query = document.getElementById('docSearch').value.toLowerCase();
-      const sections = document.querySelectorAll('main.content-area section');
-      sections.forEach(sec => {
-        const text = sec.innerText.toLowerCase();
+      const cards = document.querySelectorAll('main.content-area section, .api-card, .table-wrapper tr');
+      cards.forEach(el => {
+        const text = el.innerText.toLowerCase();
         if (text.includes(query) || query === '') {
-          sec.style.display = 'block';
+          el.style.opacity = '1';
         } else {
-          sec.style.display = 'none';
+          el.style.opacity = '0.15';
         }
       });
+      if (query === '') {
+        document.querySelectorAll('main.content-area section, .api-card, .table-wrapper tr').forEach(el => el.style.opacity = '1');
+      }
     }
 
     // Dark / Light Theme Toggle
