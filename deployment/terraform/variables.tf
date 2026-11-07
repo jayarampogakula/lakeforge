@@ -14,3 +14,9 @@ variable "environment" {
   description = "The target environment: dev, staging, or prod"
   default     = "dev"
 }
+
+variable "config_dir" {
+  type        = string
+  description = "Optional configuration directory override (leave blank to auto-detect relative to workspace repository)"
+  default     = ""
+}

@@ -26,9 +26,11 @@ class DynamicRunner:
             The return value of the executed function
         """
         try:
-            # Make sure module path is in python path
-            if "/Workspace/Users/jayarampogakula@gmail.com/lakeforge" not in sys.path:
-                sys.path.append("/Workspace/Users/jayarampogakula@gmail.com/lakeforge")
+            # Dynamically ensure lakeforge repository root is in python path
+            from pathlib import Path
+            repo_root = str(Path(__file__).resolve().parent.parent.parent)
+            if repo_root not in sys.path:
+                sys.path.insert(0, repo_root)
                 
             # Import the module
             module = importlib.import_module(module_path)

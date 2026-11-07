@@ -7,7 +7,7 @@
 # COMMAND ----------
 
 import sys
-sys.path.insert(0, '/Workspace/Users/jayarampogakula@gmail.com/lakeforge')
+sys.path.insert(0, '.')
 
 from lakeforge.reporting import create_report_generator
 from lakeforge.observability import LakeForgeLogger

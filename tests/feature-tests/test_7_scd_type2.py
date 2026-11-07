@@ -7,7 +7,7 @@
 # COMMAND ----------
 
 import sys
-sys.path.insert(0, '/Workspace/Users/jayarampogakula@gmail.com/lakeforge')
+sys.path.insert(0, '.')
 
 from pyspark.sql import SparkSession, Row
 from lakeforge.silver import create_scd_type2_handler

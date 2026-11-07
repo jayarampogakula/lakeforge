@@ -15,7 +15,7 @@ from pyspark.sql import SparkSession
 import sys
 
 # Add LakeForge to path
-sys.path.insert(0, '/Workspace/Users/jayarampogakula@gmail.com/lakeforge')
+sys.path.insert(0, '.')
 
 # Import modules
 from lakeforge.ingestion import create_csv_loader, create_excel_loader, create_api_loader

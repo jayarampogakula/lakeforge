@@ -20,7 +20,7 @@ It demonstrates how to:
 ## 🎯 How to Use
 
 ### Step 1: Open the Notebook
-1. Navigate to: `/Users/jayarampogakula@gmail.com/lakeforge/notebooks/demo/`
+1. Navigate to: `./notebooks/demo/`
 2. Open: **`simple_pipeline_guide.py`**
 
 ### Step 2: Run the Pipeline
@@ -112,7 +112,7 @@ Scroll to the bottom to see:
 
 ### Problem: Import errors
 **Solution:**
-- Ensure LakeForge is installed at `/Workspace/Users/jayarampogakula@gmail.com/lakeforge/`
+- Ensure LakeForge is installed at `./`
 - Restart the notebook and run again
 
 ---
