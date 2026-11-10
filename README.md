@@ -4,7 +4,7 @@
 
 ### *The Enterprise Metadata-Driven Medallion Data Lakehouse Framework*
 
-[![Docs Online](https://img.shields.io/badge/docs-online-0078D4?style=for-the-badge&logo=readthedocs&logoColor=white)](https://jayarampogakula.github.io/lakeforge-docs/)
+[![Docs Online](https://img.shields.io/badge/docs-online-0078D4?style=for-the-badge&logo=readthedocs&logoColor=white)](https://github/jayarampogakula/lakeforge-docs/)
 [![Databricks](https://img.shields.io/badge/Databricks-13.3%20LTS%20%7C%2014.3%20LTS%20%7C%2015.4%20LTS-FF3621?style=for-the-badge&logo=databricks&logoColor=white)](https://docs.databricks.com/)
 [![Delta Lake](https://img.shields.io/badge/Delta%20Lake-3.0%2B-00ADD8?style=for-the-badge&logo=delta&logoColor=white)](https://delta.io/)
 [![Python](https://img.shields.io/badge/python-3.9%20%7C%203.10%20%7C%203.11%20%7C%203.12-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
