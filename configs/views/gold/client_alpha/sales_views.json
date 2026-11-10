@@ -1,0 +1,8 @@
+{
+  "v_client_alpha_sales_summary": {
+    "definition_type": "query",
+    "catalog": "lakeforge_client_alpha_dev",
+    "schema": "gold",
+    "query": "SELECT region, COUNT(sale_id) AS total_sales, SUM(amount) AS total_revenue FROM lakeforge_client_alpha_dev.silver.sales_clean GROUP BY region"
+  }
+}

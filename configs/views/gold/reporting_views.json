@@ -1,0 +1,6 @@
+{
+  "v_high_value_transactions": {
+    "definition_type": "query",
+    "query": "SELECT customer_id, total_spent FROM {catalog}.{gold_schema}.customer_summary WHERE total_spent > 100.00"
+  }
+}

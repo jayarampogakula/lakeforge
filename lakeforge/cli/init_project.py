@@ -34,7 +34,6 @@ SAMPLE_INGESTION = {
         "catalog": "lakehouse_dev",
         "schema": "bronze",
         "bronze_table": "sales_raw",
-        "silver_table": "sales_clean",
         "business_key": ["order_id"],
         "merge_strategy": "upsert"
     }

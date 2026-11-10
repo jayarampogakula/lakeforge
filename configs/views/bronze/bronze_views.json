@@ -1,0 +1,10 @@
+{
+  "vw_s_customers": {
+    "definition_type": "query",
+    "query": "SELECT customer_id, customer_name FROM {catalog}.{bronze_schema}.customers"
+  },
+  "vw_customers": {
+    "definition_type": "query",
+    "query": "SELECT customer_id, customer_name FROM {catalog}.{bronze_schema}.customers"
+  }
+}

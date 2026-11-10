@@ -53,7 +53,6 @@ def mock_config_dir(tmp_path):
             "inferSchema": "true"
         },
         "bronze_table": "customers",
-        "silver_table": "customers_clean",
         "business_key": ["customer_id"],
         "merge_strategy": "upsert"
     }
@@ -66,7 +65,6 @@ def mock_config_dir(tmp_path):
         "file_path": "/path/to/transactions.csv",
         "file_format": "csv",
         "bronze_table": "transactions",
-        "silver_table": "transactions_clean",
         "business_key": ["transaction_id"],
         "merge_strategy": "append"
     }

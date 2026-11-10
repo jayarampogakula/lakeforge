@@ -1,0 +1,13 @@
+{
+  "v_active_customers": {
+    "definition_type": "table",
+    "source_table": "customers_clean",
+    "select_columns": [
+      "customer_id",
+      "customer_name",
+      "email",
+      "country"
+    ],
+    "filter_condition": "customer_status = 'Active'"
+  }
+}

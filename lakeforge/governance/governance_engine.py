@@ -118,7 +118,13 @@ class GovernanceEngine:
         environment: Optional[str] = None
     ) -> AccessControlConfig:
         """
-        Load access control configuration from JSON file or directory.
+        Load access control configuration from a JSON file or a governance directory.
+
+        Directory mode merges ALL *.json files in the governance folder (sorted by
+        filename): 'roles'/'clients' merge by name (later files override/extend earlier
+        ones for duplicate keys), and list sections ('masking_functions',
+        'column_masks', 'row_filters') are concatenated. This lets governance be
+        split across multiple files (e.g. access_control.json + data_protection.json).
         Supports multi-tenant client scoping and environment/stage catalog resolution.
         """
         path = Path(config_path_or_dir)
@@ -128,7 +134,7 @@ class GovernanceEngine:
             with open(path, "r", encoding="utf-8") as f:
                 raw_data = json.load(f)
         elif path.is_dir():
-            # Check for client-specific governance first
+            # Check for client-specific governance first (legacy clients folder)
             if client_id:
                 client_gov = path / "clients" / client_id / "governance" / "access_control.json"
                 if client_gov.is_file():
@@ -136,28 +142,54 @@ class GovernanceEngine:
                         raw_data = json.load(f)
 
             if raw_data is None:
-                gov_file = path / "governance" / "access_control.json"
-                if gov_file.is_file():
+                gov_dir = path / "governance" if (path / "governance").is_dir() else path
+                merged: Dict[str, Any] = {}
+
+                def _merge_into(data: Dict[str, Any]) -> None:
+                    for key, value in data.items():
+                        if isinstance(value, dict) and isinstance(merged.get(key), dict):
+                            merged[key].update(value)
+                        elif isinstance(value, list) and isinstance(merged.get(key), list):
+                            merged[key].extend(value)
+                        else:
+                            merged[key] = value
+
+                gov_files = list(sorted(gov_dir.glob("*.json")))
+                # Client subfolder: configs/governance/<client_id>/*.json merges
+                # ON TOP of the base files (the client's roles/grants are additive)
+                if client_id and (gov_dir / client_id).is_dir():
+                    gov_files += sorted((gov_dir / client_id).glob("*.json"))
+                for gov_file in gov_files:
                     with open(gov_file, "r", encoding="utf-8") as f:
-                        raw_data = json.load(f)
-                else:
-                    gov_file = path / "access_control.json"
-                    if gov_file.is_file():
-                        with open(gov_file, "r", encoding="utf-8") as f:
-                            raw_data = json.load(f)
+                        _merge_into(json.load(f))
+                if merged:
+                    raw_data = merged
 
         if not raw_data:
             raw_data = {"roles": {}, "clients": {}}
 
-        # Resolve target stage catalog if environment/stage is supplied
-        target_catalog_name = None
+        # Resolve environment tokens for catalog/schema references in the config:
+        # {catalog}, {bronze_schema}, {silver_schema}, {gold_schema}, {monitoring_schema},
+        # and {client_catalog} (built from client_catalog_pattern in env_settings).
+        token_map: Dict[str, str] = {}
         if environment:
             try:
                 from lakeforge.metadata.config_parser import ConfigParser
                 env_cfg = ConfigParser.get_environment_config(config_path_or_dir, environment)
-                target_catalog_name = env_cfg.get("catalog")
+                token_map["catalog"] = env_cfg.get("catalog", f"lakehouse_{environment}")
+                for _schema_key in ("bronze_schema", "silver_schema", "gold_schema", "monitoring_schema"):
+                    if _schema_key in env_cfg:
+                        token_map[_schema_key] = env_cfg[_schema_key]
+                if client_id:
+                    _pattern = env_cfg.get(
+                        "client_catalog_pattern", "lakeforge_{client_id}_{environment}"
+                    )
+                    token_map["client_catalog"] = _pattern.format(
+                        client_id=client_id, environment=environment
+                    )
             except Exception:
-                target_catalog_name = f"lakehouse_{environment}"
+                token_map["catalog"] = f"lakehouse_{environment}"
+        target_catalog_name = token_map.get("catalog")
 
         roles = raw_data.get("roles", {})
         clients = raw_data.get("clients", {})
@@ -171,11 +203,12 @@ class GovernanceEngine:
             roles = combined_roles
 
         def resolve_securable(name: str) -> str:
-            if not target_catalog_name:
+            """Interpolate {catalog}/{client_catalog}/{..._schema} tokens from the environment."""
+            if not token_map:
                 return name
-            resolved = name.replace("{catalog}", target_catalog_name)
-            if environment and environment != "dev" and resolved.startswith("lakeforge_dev"):
-                resolved = resolved.replace("lakeforge_dev", target_catalog_name)
+            resolved = name
+            for token, value in token_map.items():
+                resolved = resolved.replace("{" + token + "}", value)
             return resolved
 
         grants: List[PrincipalPrivilege] = []
@@ -233,7 +266,7 @@ class GovernanceEngine:
             raw_mask_funcs.extend(clients[client_id].get("masking_functions", []))
 
         for mf in raw_mask_funcs:
-            cat = mf.get("catalog") or target_catalog_name or "lakeforge_dev"
+            cat = resolve_securable(mf.get("catalog") or target_catalog_name or "lakeforge_dev")
             masking_funcs.append(
                 MaskingFunction(
                     function_name=mf["name"],
@@ -270,7 +303,7 @@ class GovernanceEngine:
             raw_row_filters.extend(clients[client_id].get("row_filters", []))
 
         for rf in raw_row_filters:
-            cat = rf.get("catalog") or target_catalog_name or "lakeforge_dev"
+            cat = resolve_securable(rf.get("catalog") or target_catalog_name or "lakeforge_dev")
             row_filters.append(
                 RowFilter(
                     filter_name=rf["name"],

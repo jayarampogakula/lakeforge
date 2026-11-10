@@ -1,0 +1,16 @@
+{
+  "roles": {
+    "alpha_analysts": {
+      "description": "Tenant specific role for client_alpha (this folder's client)",
+      "principals": [
+        "client_alpha_bi_group"
+      ],
+      "catalogs": {
+        "{client_catalog}": ["USE CATALOG"]
+      },
+      "schemas": {
+        "{client_catalog}.gold": ["USE SCHEMA", "SELECT"]
+      }
+    }
+  }
+}

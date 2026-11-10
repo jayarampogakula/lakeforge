@@ -4,27 +4,32 @@
     "bronze_schema": "bronze",
     "silver_schema": "silver",
     "gold_schema": "gold",
-    "monitoring_schema": "monitoring"
+    "monitoring_schema": "monitoring",
+    "client_catalog_pattern": "lakeforge_{client_id}_{environment}",
+    "additional_catalogs": {}
   },
   "test": {
     "catalog": "lakehouse_test",
     "bronze_schema": "bronze",
     "silver_schema": "silver",
     "gold_schema": "gold",
-    "monitoring_schema": "monitoring"
+    "monitoring_schema": "monitoring",
+    "client_catalog_pattern": "lakeforge_{client_id}_{environment}"
   },
   "staging": {
     "catalog": "lakehouse_staging",
     "bronze_schema": "bronze",
     "silver_schema": "silver",
     "gold_schema": "gold",
-    "monitoring_schema": "monitoring"
+    "monitoring_schema": "monitoring",
+    "client_catalog_pattern": "lakeforge_{client_id}_{environment}"
   },
   "prod": {
     "catalog": "lakehouse_prod",
     "bronze_schema": "bronze",
     "silver_schema": "silver",
     "gold_schema": "gold",
-    "monitoring_schema": "monitoring"
+    "monitoring_schema": "monitoring",
+    "client_catalog_pattern": "lakeforge_{client_id}_{environment}"
   }
 }

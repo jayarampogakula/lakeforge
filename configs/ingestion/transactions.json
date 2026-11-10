@@ -10,7 +10,6 @@
   "catalog": "lakehouse",
   "schema": "bronze",
   "bronze_table": "transactions",
-  "silver_table": "transactions_clean",
   "business_key": ["transaction_id"],
   "merge_strategy": "append"
 }

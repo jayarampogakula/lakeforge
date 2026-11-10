@@ -7,7 +7,6 @@
   "catalog": "lakehouse",
   "schema": "bronze",
   "bronze_table": "sales_raw",
-  "silver_table": "sales_clean",
   "options": {
     "header": "true",
     "inferSchema": "true"

@@ -7,6 +7,16 @@ from typing import Dict, List, Any, Optional
 from pathlib import Path
 from dataclasses import dataclass, field, asdict
 
+# Top-level keys that mark a JSON file as a single-source ("unwrapped") config
+# keyed by its filename stem, rather than a multi-source usecase file whose
+# top-level keys are the source names.
+_UNWRAPPED_CONFIG_KEYS = {
+    "source_type", "file_path", "file_format", "bronze_table",
+    "merge_strategy", "business_key", "schema", "options", "rules", "table_name",
+    "source_table", "transformations", "source_tables", "group_by", "aggregations",
+    "definition_type", "schema_type", "query", "filter_condition", "select_columns"
+}
+
 
 @dataclass
 class IngestionConfig:
@@ -52,8 +62,7 @@ class IngestionConfig:
     # Schema evolution & drift policy: allow, strict, quarantine
     schema_evolution: str = "allow"
 
-    # Silver layer target (used by the Silver pipeline)
-    silver_table: Optional[str] = None
+    # Silver layer default schema (target table resolved by the Silver pipeline's own configs)
     silver_schema: Optional[str] = None
     
     # Metadata
@@ -160,6 +169,7 @@ class ViewConfig:
     select_columns: Optional[List[str]] = None
     filter_condition: Optional[str] = None
     query: Optional[str] = None
+    client_id: Optional[str] = None
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert config to dictionary."""
@@ -177,47 +187,67 @@ class ConfigParser:
         client_id: Optional[str] = None
     ) -> Optional[Dict[str, Any]]:
         """
-        Locate configuration with multi-tenant client scoping and fallback inheritance.
+        Locate configuration inside configs/<category>/.
         Priority:
-          1. configs/clients/<client_id>/<category>/<item_name>.json
-          2. configs/clients/<client_id>/<item_name>.json
-          3. Multi-source file inside configs/clients/<client_id>/<category>/
-          4. configs/<category>/<item_name>.json
-          5. Multi-source file inside configs/<category>/
+          1. configs/<category>/<client_id>/<item_name>.json  (when client_id is set)
+          2. configs/<category>/<item_name>.json
+          3. item_name as a top-level key inside any file in configs/<category>/
+          4. item_name in any OTHER client subfolder configs/<category>/<*>/ -
+             the subfolder name is injected as the config's 'client_id'
+             (folder is authoritative).
+        Empty/neutralized files are skipped so a migrated-away main file
+        does not shadow the client subfolder.
         """
         path = Path(config_dir_or_file)
         if not path.is_dir():
             return None
 
-        # 1. Check client-specific directories if client_id is given
-        if client_id:
-            client_cat_dir = path / "clients" / client_id / category
-            if client_cat_dir.is_dir():
-                file_direct = client_cat_dir / f"{item_name}.json"
-                if file_direct.is_file():
-                    with open(file_direct, 'r', encoding='utf-8') as f:
-                        return json.load(f)
-                merged = ConfigParser.load_merged_json(str(client_cat_dir))
-                if item_name in merged:
-                    return merged[item_name]
-
-            client_dir = path / "clients" / client_id
-            if client_dir.is_dir():
-                file_direct = client_dir / f"{item_name}.json"
-                if file_direct.is_file():
-                    with open(file_direct, 'r', encoding='utf-8') as f:
-                        return json.load(f)
-
-        # 2. Check standard category directory
+        # Check the standard category directory
         cat_dir = path / category
         if cat_dir.is_dir():
+            # 1. The requested client's subfolder first
+            if client_id:
+                client_file = cat_dir / client_id / f"{item_name}.json"
+                if client_file.is_file():
+                    with open(client_file, 'r', encoding='utf-8') as f:
+                        data = json.load(f)
+                    if data:
+                        return data
+                if (cat_dir / client_id).is_dir():
+                    client_merged = ConfigParser.load_merged_json(str(cat_dir / client_id))
+                    if item_name in client_merged and client_merged[item_name]:
+                        return client_merged[item_name]
+
+            # 2. Direct file in the category folder
             file_direct = cat_dir / f"{item_name}.json"
             if file_direct.is_file():
                 with open(file_direct, 'r', encoding='utf-8') as f:
-                    return json.load(f)
+                    data = json.load(f)
+                if data:
+                    return data
+
+            # 3. Top-level key inside any file of the category folder
             merged = ConfigParser.load_merged_json(str(cat_dir))
-            if item_name in merged:
+            if item_name in merged and merged[item_name]:
                 return merged[item_name]
+
+            # 4. Any other client subfolder (subfolder name = client_id)
+            for sub in sorted(p for p in cat_dir.iterdir() if p.is_dir()):
+                if client_id and sub.name == client_id:
+                    continue
+                sub_file = sub / f"{item_name}.json"
+                if sub_file.is_file():
+                    with open(sub_file, 'r', encoding='utf-8') as f:
+                        data = json.load(f)
+                    if data and isinstance(data, dict):
+                        data["client_id"] = sub.name
+                        return data
+                if item_name in merged:
+                    continue
+                sub_merged = ConfigParser.load_merged_json(str(sub))
+                if item_name in sub_merged and isinstance(sub_merged[item_name], dict):
+                    sub_merged[item_name]["client_id"] = sub.name
+                    return sub_merged[item_name]
 
         return None
     
@@ -237,7 +267,7 @@ class ConfigParser:
         # If it is a directory, load and merge all JSON files
         merged = {}
         unwrapped_keys = {
-            "source_type", "file_path", "file_format", "bronze_table", "silver_table", 
+            "source_type", "file_path", "file_format", "bronze_table", 
             "merge_strategy", "business_key", "schema", "options", "rules", "table_name", 
             "source_table", "transformations", "source_tables", "group_by", "aggregations", 
             "definition_type", "schema_type", "query", "filter_condition", "select_columns"
@@ -303,7 +333,17 @@ class ConfigParser:
             env_data = monolithic.get("environments", {})
             
         if not env_data:
-            raise ValueError(f"Environment configurations not found in {config_dir_or_file}")
+            # A custom config folder (e.g. a per-client / per-usecase folder passed via
+            # the notebooks' config_dir widget) may contain only its own configs and no
+            # environments/env_settings.json - in that case inherit the framework's
+            # central env settings so minimal client folders work out of the box.
+            framework_env = Path(__file__).resolve().parents[2] / "configs" / "environments" / "env_settings.json"
+            if framework_env.exists():
+                with open(framework_env, 'r', encoding='utf-8') as f:
+                    env_data = json.load(f)
+        if not env_data:
+            raise ValueError(f"Environment configurations not found in {config_dir_or_file} "
+                             f"(and no central env_settings.json to fall back to)")
             
         if environment in env_data:
             return env_data[environment]
@@ -404,9 +444,115 @@ class ConfigParser:
             merge_strategy=merge_strat,
             client_id=client_id or source_data.get("client_id"),
             schema_evolution=evolution_val,
-            silver_table=source_data.get("silver_table"),
             silver_schema=source_data.get("silver_schema", env_config.get("silver_schema"))
         )
+
+    @staticmethod
+    def get_ingestion_sources(
+        config_dir_or_file: str,
+        pipeline_name: str,
+        environment: str,
+        client_id: Optional[str] = None
+    ) -> List[IngestionConfig]:
+        """
+        Resolve pipeline_name into the list of IngestionConfigs to execute.
+
+        Resolution order:
+          1. configs/ingestion/<pipeline_name>.json exists -> it is a usecase
+             file: ALL sources defined inside it are returned.
+          2. Otherwise pipeline_name is a single source name -> only that
+             source is returned (direct file or key inside any file in
+             configs/ingestion/).
+
+        Client scoping (field-based - no clients/ folders):
+          - Each source may carry a "client_id" field. A file-level "client_id"
+            on a usecase file applies to every source in that file.
+          - If client_id is set, only sources whose effective client_id matches
+            are returned; otherwise ALL sources are returned.
+        """
+        path = Path(config_dir_or_file)
+        ing_dir = path / "ingestion"
+        sources_raw: Dict[str, Any] = {}
+        file_client_default = None
+
+        # Locate the usecase/scope file: the requested client's subfolder first,
+        # then the main ingestion folder, then any other client subfolder. A
+        # subfolder name is the file's client_id (folder is authoritative).
+        # Empty/neutralized files are skipped so a migrated-away main file does
+        # not shadow the client subfolder.
+        candidates: List[Path] = []
+        if client_id and (ing_dir / client_id).is_dir():
+            candidates.append(ing_dir / client_id / f"{pipeline_name}.json")
+        if (ing_dir / f"{pipeline_name}.json").is_file():
+            candidates.append(ing_dir / f"{pipeline_name}.json")
+        if ing_dir.is_dir():
+            for sub in sorted(p for p in ing_dir.iterdir() if p.is_dir()):
+                if sub.name != client_id:
+                    candidates.append(sub / f"{pipeline_name}.json")
+
+        usecase_content: Optional[Dict[str, Any]] = None
+        folder_client = None
+        for cand in candidates:
+            try:
+                with open(cand, 'r', encoding='utf-8') as f:
+                    content = json.load(f)
+                if isinstance(content, dict) and content:
+                    usecase_content = content
+                    if cand.parent != ing_dir:
+                        # Client subfolder: folder name is the client_id
+                        folder_client = cand.parent.name
+                    break
+            except (ValueError, OSError):
+                continue
+
+        if usecase_content is not None:
+            content = usecase_content
+            if "client_id" in content and isinstance(content.get("client_id"), str):
+                file_client_default = content["client_id"]
+            if folder_client:
+                file_client_default = folder_client  # folder is authoritative
+
+            if any(k in _UNWRAPPED_CONFIG_KEYS for k in content.keys()):
+                # Single-source (unwrapped) file: the file itself is one source
+                sources_raw = {pipeline_name: content}
+            else:
+                # Multi-source file: top-level keys are the source names
+                sources_raw = {
+                    k: v for k, v in content.items()
+                    if isinstance(v, dict) and k != "client_id"
+                }
+        else:
+            # Single source by name: direct file or key inside any ingestion file
+            source_data = ConfigParser._find_scoped_config(config_dir_or_file, "ingestion", pipeline_name, client_id)
+            if source_data is None:
+                raise ValueError(f"No ingestion configuration found for '{pipeline_name}' in {config_dir_or_file}")
+            if pipeline_name in source_data and isinstance(source_data[pipeline_name], dict):
+                source_data = source_data[pipeline_name]
+            sources_raw = {pipeline_name: source_data}
+
+        if not sources_raw:
+            raise ValueError(f"No ingestion sources found for '{pipeline_name}' in {config_dir_or_file}")
+
+        # Client filtering on the 'client_id' field
+        selected: Dict[str, Any] = {}
+        for name, sdata in sources_raw.items():
+            effective_client = sdata.get("client_id", file_client_default)
+            if client_id and effective_client != client_id:
+                continue
+            selected[name] = sdata
+
+        if not selected:
+            available = {n: (s.get("client_id", file_client_default) or "(global)")
+                        for n, s in sources_raw.items()}
+            raise ValueError(
+                f"No sources for '{pipeline_name}' match client '{client_id}'. "
+                f"Available sources and their client_id: {available}"
+            )
+
+        return [
+            ConfigParser.get_ingestion_config(config_dir_or_file, name, environment, client_id=client_id)
+            for name in selected.keys()
+        ]
 
     @staticmethod
     def get_dq_config(
@@ -553,70 +699,98 @@ class ConfigParser:
     def get_view_configs(
         config_dir_or_file: str,
         environment: str,
-        client_id: Optional[str] = None
+        client_id: Optional[str] = None,
+        layer: Optional[str] = None
     ) -> List[ViewConfig]:
         """
-        Extract and construct a list of ViewConfigs from configs.
-        Supports multi-tenant client_id scoping.
+        Extract and construct a list of ViewConfigs from configs/views/.
+
+        Views are organised by LAYER folder, matching the pipeline layers:
+            configs/views/bronze/ - views over bronze tables (created by the bronze run)
+            configs/views/silver/ - views over silver tables (created by the silver run)
+            configs/views/gold/   - views over gold tables (created by the gold run)
+
+        - layer='bronze'|'silver'|'gold' -> only that layer's folder is read.
+        - layer=None -> all layer folders are read, plus any legacy JSON files
+          placed directly in configs/views/ (schema inferred from 'schema_type').
+        - The target schema defaults to the layer's schema from the environment
+          settings; an explicit 'schema'/'catalog' on a view overrides it
+          (e.g. client-specific catalogs).
+        - Each view may carry a 'client_id': a set client_id returns only views
+          with a matching client_id; a blank client_id returns all views.
         """
         env_config = ConfigParser.get_environment_config(config_dir_or_file, environment)
         path = Path(config_dir_or_file)
-        views_dict = None
+        views_dir = path / "views"
 
-        if path.is_dir():
-            if client_id:
-                client_views_dir = path / "clients" / client_id / "views"
-                if client_views_dir.is_dir():
-                    views_dict = ConfigParser.load_merged_json(str(client_views_dir))
-
-            if not views_dict:
-                views_dir = path / "views"
-                if views_dir.exists() and views_dir.is_dir():
-                    views_dict = ConfigParser.load_merged_json(str(views_dir))
-                else:
-                    views_dict = ConfigParser.load_merged_json(config_dir_or_file)
-        else:
+        # Collect (views_dict, source_layer) per origin
+        sources = []
+        if path.is_dir() and views_dir.is_dir():
+            layers = [layer] if layer in ("bronze", "silver", "gold") else ["bronze", "silver", "gold"]
+            for lyr in layers:
+                lyr_dir = views_dir / lyr
+                if lyr_dir.is_dir():
+                    sources.append((ConfigParser.load_merged_json(str(lyr_dir)), lyr))
+                    # Client subfolders: configs/views/<layer>/<client>/*.json -
+                    # the subfolder name is each view's client_id (folder is authoritative)
+                    for sub in sorted(p for p in lyr_dir.iterdir() if p.is_dir()):
+                        sub_views = ConfigParser.load_merged_json(str(sub))
+                        if not sub_views:
+                            continue
+                        for v in sub_views.values():
+                            if isinstance(v, dict):
+                                v["client_id"] = sub.name
+                        sources.append((sub_views, lyr))
+            if layer is None and any(views_dir.glob("*.json")):
+                # Legacy: plain JSON files directly under configs/views/
+                sources.append((ConfigParser.load_merged_json(str(views_dir)), None))
+        elif path.is_file():
             with open(path, 'r', encoding='utf-8') as f:
                 monolithic = json.load(f)
-            views_dict = monolithic.get("views", {})
-            
-        if not views_dict:
-            if isinstance(views_dict, dict) and any(k in ["definition_type", "view_type"] for k in views_dict.values()):
-                pass
-            else:
-                views_dict = {}
-                
-        parsed_configs = []
-        for view_name, view_info in views_dict.items():
-            if not isinstance(view_info, dict):
-                continue
-            schema_type = view_info.get("schema_type", "silver")
-            
-            if view_info.get("schema"):
-                schema_val = view_info.get("schema")
-            elif schema_type == "bronze":
-                schema_val = env_config["bronze_schema"]
-            elif schema_type == "gold":
-                schema_val = env_config["gold_schema"]
-            else:
-                schema_val = env_config["silver_schema"]
+            sources.append((monolithic.get("views", {}), None))
 
-            catalog_val = view_info.get("catalog") or env_config["catalog"]
-                
-            parsed_configs.append(
-                ViewConfig(
-                    view_name=view_name,
-                    catalog=catalog_val,
-                    schema=schema_val,
-                    definition_type=view_info.get("definition_type", "table"),
-                    view_type=view_info.get("view_type", "persistent"),
-                    source_table=view_info.get("source_table"),
-                    select_columns=view_info.get("select_columns"),
-                    filter_condition=view_info.get("filter_condition"),
-                    query=view_info.get("query")
+        parsed_configs = []
+        seen = set()
+        for views_dict, src_layer in sources:
+            for view_name, view_info in views_dict.items():
+                if not isinstance(view_info, dict) or view_name in seen:
+                    continue
+                seen.add(view_name)
+
+                # Schema: explicit 'schema' > layer folder > 'schema_type' (legacy root files)
+                if view_info.get("schema"):
+                    schema_val = view_info.get("schema")
+                elif src_layer:
+                    schema_val = env_config.get(f"{src_layer}_schema") or env_config["silver_schema"]
+                else:
+                    schema_type = view_info.get("schema_type", "silver")
+                    if schema_type == "bronze":
+                        schema_val = env_config["bronze_schema"]
+                    elif schema_type == "gold":
+                        schema_val = env_config["gold_schema"]
+                    else:
+                        schema_val = env_config["silver_schema"]
+
+                # Client scoping: view-level 'client_id' field (blank widget = all views)
+                view_client = view_info.get("client_id")
+                if client_id and view_client != client_id:
+                    continue
+
+                parsed_configs.append(
+                    ViewConfig(
+                        view_name=view_name,
+                        catalog=view_info.get("catalog") or env_config["catalog"],
+                        schema=schema_val,
+                        definition_type=view_info.get("definition_type", "table"),
+                        view_type=view_info.get("view_type", "persistent"),
+                        source_table=view_info.get("source_table"),
+                        select_columns=view_info.get("select_columns"),
+                        filter_condition=view_info.get("filter_condition"),
+                        query=view_info.get("query"),
+                        client_id=view_client
+                    )
                 )
-            )
-            
+
         return parsed_configs
 
     @staticmethod
@@ -745,12 +919,12 @@ def load_dq_config(config_path: str, environment: str = "dev") -> DQConfig:
     return config
 
 
-def load_view_configs(config_path: str, environment: str, client_id: Optional[str] = None) -> List[ViewConfig]:
+def load_view_configs(config_path: str, environment: str, client_id: Optional[str] = None, layer: Optional[str] = None) -> List[ViewConfig]:
     """
     Load and validate view configurations.
-    Supports multi-tenant client_id scoping.
+    Supports multi-tenant client_id scoping and layer folders (bronze/silver/gold).
     """
-    configs = ConfigParser.get_view_configs(config_path, environment, client_id=client_id)
+    configs = ConfigParser.get_view_configs(config_path, environment, client_id=client_id, layer=layer)
     for config in configs:
         errors = ConfigParser.validate_view_config(config)
         if errors:

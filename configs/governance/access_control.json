@@ -1,6 +1,6 @@
 {
-  "version": "1.0.0",
-  "description": "Centralized Unity Catalog Access Control and Governance Configuration for LakeForge",
+  "version": "1.1.0",
+  "description": "Centralized Unity Catalog Access Control and Governance Configuration for LakeForge. Catalog references are environment tokens: {catalog} resolves to the environment catalog from env_settings, {client_catalog} to the client catalog via client_catalog_pattern.",
   "roles": {
     "data_engineers": {
       "description": "Full read/write permissions for pipeline orchestration and data engineering",
@@ -9,12 +9,12 @@
         "sp_lakeforge_orchestration"
       ],
       "catalogs": {
-        "lakeforge_dev": ["USE CATALOG"]
+        "{catalog}": ["USE CATALOG"]
       },
       "schemas": {
-        "lakeforge_dev.bronze": ["USE SCHEMA", "SELECT", "MODIFY", "CREATE TABLE"],
-        "lakeforge_dev.silver": ["USE SCHEMA", "SELECT", "MODIFY", "CREATE TABLE"],
-        "lakeforge_dev.gold": ["USE SCHEMA", "SELECT", "MODIFY", "CREATE TABLE"]
+        "{catalog}.bronze": ["USE SCHEMA", "SELECT", "MODIFY", "CREATE TABLE"],
+        "{catalog}.silver": ["USE SCHEMA", "SELECT", "MODIFY", "CREATE TABLE"],
+        "{catalog}.gold": ["USE SCHEMA", "SELECT", "MODIFY", "CREATE TABLE"]
       }
     },
     "business_analysts": {
@@ -23,15 +23,15 @@
         "business_analysts_group"
       ],
       "catalogs": {
-        "lakeforge_dev": ["USE CATALOG"]
+        "{catalog}": ["USE CATALOG"]
       },
       "schemas": {
-        "lakeforge_dev.silver": ["USE SCHEMA"],
-        "lakeforge_dev.gold": ["USE SCHEMA", "SELECT"]
+        "{catalog}.silver": ["USE SCHEMA"],
+        "{catalog}.gold": ["USE SCHEMA", "SELECT"]
       },
       "tables": {
-        "lakeforge_dev.silver.customers_clean": ["SELECT"],
-        "lakeforge_dev.silver.transactions_clean": ["SELECT"]
+        "{catalog}.silver.customers_clean": ["SELECT"],
+        "{catalog}.silver.transactions_clean": ["SELECT"]
       }
     },
     "executive_viewers": {
@@ -40,14 +40,14 @@
         "executive_reporting_group"
       ],
       "catalogs": {
-        "lakeforge_dev": ["USE CATALOG"]
+        "{catalog}": ["USE CATALOG"]
       },
       "schemas": {
-        "lakeforge_dev.gold": ["USE SCHEMA"]
+        "{catalog}.gold": ["USE SCHEMA"]
       },
       "views": {
-        "lakeforge_dev.gold.v_high_value_transactions": ["SELECT"],
-        "lakeforge_dev.gold.v_active_customers": ["SELECT"]
+        "{catalog}.gold.v_high_value_transactions": ["SELECT"],
+        "{catalog}.gold.v_active_customers": ["SELECT"]
       }
     },
     "compliance_auditors": {
@@ -56,70 +56,13 @@
         "compliance_auditors_group"
       ],
       "catalogs": {
-        "lakeforge_dev": ["USE CATALOG"]
+        "{catalog}": ["USE CATALOG"]
       },
       "schemas": {
-        "lakeforge_dev.bronze": ["USE SCHEMA", "SELECT"],
-        "lakeforge_dev.silver": ["USE SCHEMA", "SELECT"],
-        "lakeforge_dev.gold": ["USE SCHEMA", "SELECT"]
+        "{catalog}.bronze": ["USE SCHEMA", "SELECT"],
+        "{catalog}.silver": ["USE SCHEMA", "SELECT"],
+        "{catalog}.gold": ["USE SCHEMA", "SELECT"]
       }
     }
-  },
-  "clients": {
-    "client_alpha": {
-      "description": "Tenant specific overrides and roles for client_alpha",
-      "roles": {
-        "alpha_analysts": {
-          "principals": [
-            "client_alpha_bi_group"
-          ],
-          "catalogs": {
-            "lakeforge_client_alpha_dev": ["USE CATALOG"]
-          },
-          "schemas": {
-            "lakeforge_client_alpha_dev.gold": ["USE SCHEMA", "SELECT"]
-          }
-        }
-      }
-    }
-  },
-  "masking_functions": [
-    {
-      "name": "mask_email",
-      "schema": "silver",
-      "input_column": "email",
-      "input_type": "STRING",
-      "return_type": "STRING",
-      "expression": "CASE WHEN is_account_group_member('pii_admins') THEN email ELSE concat(substring(email, 1, 2), '****@****.com') END"
-    },
-    {
-      "name": "mask_phone",
-      "schema": "silver",
-      "input_column": "phone",
-      "input_type": "STRING",
-      "return_type": "STRING",
-      "expression": "CASE WHEN is_account_group_member('pii_admins') THEN phone ELSE concat('XXX-XXX-', substring(phone, -4)) END"
-    }
-  ],
-  "column_masks": [
-    {
-      "table": "{catalog}.silver.customers_clean",
-      "column": "email",
-      "function": "{catalog}.silver.mask_email"
-    },
-    {
-      "table": "{catalog}.silver.customers_clean",
-      "column": "phone",
-      "function": "{catalog}.silver.mask_phone"
-    }
-  ],
-  "row_filters": [
-    {
-      "name": "filter_customers_by_region",
-      "schema": "silver",
-      "table": "{catalog}.silver.customers_clean",
-      "filter_columns": ["region"],
-      "expression": "is_account_group_member('global_data_access') OR region = current_user()"
-    }
-  ]
+  }
 }
