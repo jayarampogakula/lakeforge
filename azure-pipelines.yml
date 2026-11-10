@@ -4,9 +4,14 @@
 
 trigger:
   branches:
+    # Branch policy: dev/feature/bugfix branches deploy to DEV only (guarded in DeployStage);
+    # test/staging/prod deployments are only ever built from main.
     include:
       - main
       - release/*
+      - dev
+      - feature/*
+      - bugfix/*
 
 pr:
   branches:
@@ -105,6 +110,15 @@ stages:
                     python -m pip install --upgrade pip
                     pip install -e .
                   displayName: "Install LakeForge CLI"
+
+                - script: |
+                    BRANCH_NAME="$(Build.SourceBranchName)"
+                    TARGET_STAGE="${{ parameters.stage }}"
+                    if [ "$TARGET_STAGE" != "dev" ] && [ "$BRANCH_NAME" != "main" ]; then
+                      echo "##vso[task.logissue type=error]Stage '$TARGET_STAGE' may only be deployed from 'main' (current branch: '$BRANCH_NAME'). Feature/dev-branch runs deploy to dev only."
+                      exit 1
+                    fi
+                  displayName: "Enforce Branch Policy (test/staging/prod deploy from main only)"
 
                 - script: |
                     CLIENT_ARG=""

@@ -4,7 +4,7 @@ services:
   lakeforge-tests:
     build:
       context: ../../
-      dockerfile: deployment/docker/Dockerfile
+      dockerfile: infrastructure/docker/Dockerfile
     container_name: lakeforge_unit_tests
     volumes:
       - ../../lakeforge:/app/lakeforge

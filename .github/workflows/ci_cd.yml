@@ -2,9 +2,11 @@ name: LakeForge CI/CD Multi-Stage Pipeline
 
 on:
   push:
-    branches: [ main ]
+    # Branch policy: dev/feature/bugfix branches deploy to DEV only (guarded below);
+    # test/staging/prod deployments are only ever built from main.
+    branches: [ main, dev, 'feature/**', 'bugfix/**' ]
   pull_request:
-    branches: [ main ]
+    branches: [ main, dev ]
   workflow_dispatch:
     inputs:
       stage:
@@ -82,7 +84,7 @@ jobs:
   deploy:
     name: Deploy to Stage
     needs: build-and-test
-    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'push'
     runs-on: ubuntu-latest
 
     steps:
@@ -110,7 +112,12 @@ jobs:
           COMP_ARG="${{ github.event.inputs.component }}"
           DRY_RUN="${{ github.event.inputs.dry_run }}"
         else
-          TARGET_STAGE="dev"
+          # Push builds: main promotes to test; dev/feature/bugfix branches deploy to dev ONLY
+          if [ "${{ github.ref }}" = "refs/heads/main" ]; then
+            TARGET_STAGE="test"
+          else
+            TARGET_STAGE="dev"
+          fi
           CLIENT_ARG=""
           COMP_ARG="all"
           DRY_RUN="false"
@@ -120,6 +127,12 @@ jobs:
         echo "COMPONENT=$COMP_ARG" >> $GITHUB_ENV
         echo "DRY_RUN=$DRY_RUN" >> $GITHUB_ENV
         echo "Deploying to target stage: $TARGET_STAGE (client: $CLIENT_ARG, component: $COMP_ARG, dry_run: $DRY_RUN)"
+
+    - name: Enforce Branch Policy (test/staging/prod deploy from main only)
+      if: env.STAGE != 'dev' && github.ref != 'refs/heads/main'
+      run: |
+        echo "::error::Stage '${{ env.STAGE }}' may only be deployed from branch 'main' (current branch: '${{ github.ref_name }}'). Feature/dev-branch runs deploy to dev only."
+        exit 1
 
     - name: Execute Stage Deployment
       run: |

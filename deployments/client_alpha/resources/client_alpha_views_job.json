@@ -1,0 +1,24 @@
+{
+  "resources": {
+    "jobs": {
+      "client_alpha_views_refresh": {
+        "name": "lakeforge-client-alpha-views-refresh-${bundle.target}",
+        "tasks": [
+          {
+            "task_key": "views_refresh",
+            "notebook_task": {
+              "notebook_path": "../../../pipelines/VIEWS_Creation_Pipeline.ipynb",
+              "base_parameters": {
+                "config_dir": "",
+                "environment": "${bundle.target}",
+                "stage": "${bundle.target}",
+                "client_id": "client_alpha",
+                "layer": "all"
+              }
+            }
+          }
+        ]
+      }
+    }
+  }
+}

@@ -9,7 +9,7 @@
 [![Delta Lake](https://img.shields.io/badge/Delta%20Lake-3.0%2B-00ADD8?style=for-the-badge&logo=delta&logoColor=white)](https://delta.io/)
 [![Python](https://img.shields.io/badge/python-3.9%20%7C%203.10%20%7C%203.11%20%7C%203.12-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg?style=for-the-badge)](LICENSE)
-[![CI/CD](https://img.shields.io/badge/CI%2FCD-GitHub%20Actions%20%7C%20Azure%20DevOps-0078D7?style=for-the-badge&logo=azure-pipelines&logoColor=white)](deployment/)
+[![CI/CD](https://img.shields.io/badge/CI%2FCD-GitHub%20Actions%20%7C%20Azure%20DevOps-0078D7?style=for-the-badge&logo=azure-pipelines&logoColor=white)](infrastructure/)
 [![Tests](https://img.shields.io/badge/Unit%20Tests-54%20Passed-brightgreen?style=for-the-badge&logo=pytest&logoColor=white)](tests/)
 
 <p align="center">
@@ -252,7 +252,7 @@ flowchart LR
 - **Azure DevOps**: Pre-configured multi-stage pipeline defined in [`azure-pipelines.yml`](azure-pipelines.yml) with approval gates and secret linking.
 - **GitHub Actions**: Automated CI/CD workflow defined in [`.github/workflows/ci_cd.yml`](.github/workflows/ci_cd.yml).
 - **Databricks Asset Bundles (DAB)**: Declared in [`databricks.yml`](databricks.yml) for serverless workflow execution.
-- **Terraform Infrastructure as Code**: Full cluster, secret scope, and workflow provisioning in [`deployment/terraform/`](deployment/terraform/).
+- **Terraform Infrastructure as Code**: Full cluster, secret scope, and workflow provisioning in [`infrastructure/terraform/`](infrastructure/terraform/).
 
 ---
 
@@ -263,7 +263,6 @@ lakeforge/
 ├── .github/workflows/         # GitHub Actions multi-stage CI/CD
 ├── configs/                    # Declarative JSON configs (Metadata Engine)
 │   ├── aggregations/          # Gold layer aggregation definitions
-│   ├── clients/               # Multi-tenant client overrides
 │   ├── dq/                    # Data quality rule suites & tolerances
 │   ├── environments/          # Stage configs (dev, test, staging, prod)
 │   ├── governance/            # Unity Catalog grants, PII masks & row filters
@@ -271,11 +270,12 @@ lakeforge/
 │   ├── pipelines/             # End-to-end pipeline graphs
 │   ├── transformations/       # Silver cleaning & business transformations
 │   └── views/                 # View generation queries
-├── deployment/                 # Enterprise deployment manifests
-│   ├── airflow/               # Apache Airflow DAG definitions
+├── deployments/                # PER-CLIENT Databricks bundle roots (one independent bundle per client)
+├── infrastructure/             # Enterprise infrastructure manifests
+│   ├── databricks/            # Main (global) DAB resource files
 │   ├── docker/                # Isolated container runtimes
 │   ├── terraform/             # Terraform Databricks Workspace & Job IaC
-│   └── workflows/             # Databricks Workflow job definitions
+│   └── workflows/             # Orchestration guides & job definitions
 ├── lakeforge/                  # Core Python Package
 │   ├── bronze/                # Raw ingestion, audit stamps, schema evolution
 │   ├── cli/                   # lakeforge CLI tool

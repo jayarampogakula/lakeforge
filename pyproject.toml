@@ -50,7 +50,7 @@ lakeforge = "lakeforge.cli:main"
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["lakeforge*"]
-exclude = ["tests*", "docs*", "deployment*"]
+exclude = ["tests*", "docs*", "deployments*", "infrastructure*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests/unit_tests"]

@@ -1,0 +1,5 @@
+# MOVED - the global medallion job now lives in:
+#   infrastructure/databricks/resources/lakeforge_global_job.yml
+# (per-resource files; each client gets its own bundle under deployments/)
+# This file is no longer included by databricks.yml - safe to delete.
+{}

@@ -4,7 +4,9 @@ bundle:
   name: lakeforge
 
 include:
-  - deployment/databricks/*.yml
+  # GLOBAL resources only - per-resource files under infrastructure/databricks/resources/.
+  # Each CLIENT has its own independent bundle: deployments/<client_id>/databricks.yml
+  - infrastructure/databricks/resources/*.yml
 
 variables:
   stage:
@@ -16,20 +18,26 @@ variables:
 
 targets:
   dev:
-    mode: development
+    # No 'mode: development' on purpose: it would prefix all job names with
+    # "[dev <username>]". Plain target keeps clean names; root_path stays
+    # user-scoped below to keep personal deployments isolated.
     default: true
     workspace:
-      root_path: /Workspace/Shared/lakeforge/dev
+      root_path: ~/.lakeforge/dev
     variables:
       stage: "dev"
 
   test:
+    # Production mode: locked bundle state, no uncommitted changes permitted
+    mode: production
     workspace:
       root_path: /Workspace/Shared/lakeforge/test
     variables:
       stage: "test"
 
   staging:
+    # Production mode: locked bundle state, no uncommitted changes permitted
+    mode: production
     workspace:
       root_path: /Workspace/Shared/lakeforge/staging
     variables:

@@ -1,0 +1,63 @@
+# LakeForge CLIENT BUNDLE: client_alpha
+# Independent Databricks bundle - deploy ONLY this client with:
+#   cd deployments/client_alpha
+#   databricks bundle deploy -t dev
+# (Databricks' recommended multi-bundle-per-repo pattern - the shared framework
+#  folders at the repo root are synced in via sync.paths.)
+bundle:
+  name: lakeforge_client_alpha
+
+include:
+  # Per-resource files: *_job.yml and *.json
+  - resources/*.yml
+  - resources/*.json
+
+variables:
+  stage:
+    description: "Deployment stage (dev, test, staging, prod)"
+    default: "dev"
+  client_id:
+    description: "Client scope - fixed to this bundle's client"
+    default: "client_alpha"
+
+# Shared framework code, notebooks and configs live at the REPO root,
+# outside this bundle folder - sync them into this bundle's workspace root.
+sync:
+  paths:
+    - ../../pipelines
+    - ../../configs
+    - ../../lakeforge
+
+targets:
+  dev:
+    # No 'mode: development' on purpose: it would prefix all job names with
+    # "[dev <username>]". Plain target keeps clean names; root_path stays
+    # user-scoped below to keep personal deployments isolated.
+    default: true
+    workspace:
+      root_path: ~/.lakeforge_client_alpha/dev
+    variables:
+      stage: "dev"
+
+  test:
+    # Production mode: locked bundle state, no uncommitted changes permitted
+    mode: production
+    workspace:
+      root_path: /Workspace/Shared/lakeforge_client_alpha/test
+    variables:
+      stage: "test"
+
+  staging:
+    # Production mode: locked bundle state, no uncommitted changes permitted
+    mode: production
+    workspace:
+      root_path: /Workspace/Shared/lakeforge_client_alpha/staging
+    variables:
+      stage: "staging"
+
+  prod:
+    mode: production
+    workspace:
+      root_path: /Workspace/Shared/lakeforge_client_alpha/prod
+    variables:
+      stage: "prod"

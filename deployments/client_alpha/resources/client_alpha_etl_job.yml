@@ -1,0 +1,76 @@
+# LakeForge client_alpha ETL job - fully client-scoped (all tasks client_id=client_alpha).
+# No gold aggregation task: sales has no aggregation config; the client's gold
+# VIEW (v_client_alpha_sales_summary) is created by the views task.
+resources:
+  jobs:
+    client_alpha_etl_pipeline:
+      name: "lakeforge-client-alpha-etl-${bundle.target}"
+
+      # Serverless-only workspace: no job_clusters block - notebook tasks run
+      # on serverless compute for Jobs automatically.
+      tasks:
+        # Task 0: Provision THIS client's catalog + schemas (idempotent)
+        - task_key: "setup_environment_provisioning"
+          notebook_task:
+            notebook_path: "../../../pipelines/SETUP_Environment_Provisioning.ipynb"
+            base_parameters:
+              config_dir: ""
+              environment: "${bundle.target}"
+              stage: "${bundle.target}"
+              client_id: "client_alpha"
+              dry_run: "false"
+
+        # Task 1: Bronze ingestion - sales (configs/ingestion/client_alpha/sales.json)
+        - task_key: "bronze_sales_ingestion"
+          depends_on:
+            - task_key: "setup_environment_provisioning"
+          notebook_task:
+            notebook_path: "../../../pipelines/Bronze_Generic_Pipeline.ipynb"
+            base_parameters:
+              config_dir: ""
+              source_config_file: "sales"
+              environment: "${bundle.target}"
+              stage: "${bundle.target}"
+              client_id: "client_alpha"
+              create_views: "false"
+
+        # Task 2: Silver - sales_clean (configs/transformations/client_alpha/sales_clean.json)
+        - task_key: "silver_sales_transformation"
+          depends_on:
+            - task_key: "bronze_sales_ingestion"
+          notebook_task:
+            notebook_path: "../../../pipelines/SILVER_Transformation_Pipeline.ipynb"
+            base_parameters:
+              config_dir: ""
+              source_table: "sales"
+              target_table: "sales_clean"
+              environment: "${bundle.target}"
+              stage: "${bundle.target}"
+              client_id: "client_alpha"
+              create_views: "false"
+
+        # Task 3: Views for this client (silver + gold client views)
+        - task_key: "views_creation_task"
+          depends_on:
+            - task_key: "silver_sales_transformation"
+          notebook_task:
+            notebook_path: "../../../pipelines/VIEWS_Creation_Pipeline.ipynb"
+            base_parameters:
+              config_dir: ""
+              environment: "${bundle.target}"
+              stage: "${bundle.target}"
+              client_id: "client_alpha"
+              layer: "all"
+
+        # Task 4: Governance - client_alpha grants
+        - task_key: "governance_security_task"
+          depends_on:
+            - task_key: "views_creation_task"
+          notebook_task:
+            notebook_path: "../../../pipelines/GOVERNANCE_Security_Pipeline.ipynb"
+            base_parameters:
+              config_dir: ""
+              environment: "${bundle.target}"
+              stage: "${bundle.target}"
+              client_id: "client_alpha"
+              dry_run: "false"
