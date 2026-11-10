@@ -276,10 +276,6 @@ lakeforge/
 │   ├── docker/                # Isolated container runtimes
 │   ├── terraform/             # Terraform Databricks Workspace & Job IaC
 │   └── workflows/             # Databricks Workflow job definitions
-├── docs/                       # Official documentation & guides
-│   ├── index.html             # Full Interactive Documentation Web App
-│   ├── ingestion/             # 15+ Connector reference guides
-│   └── architecture/          # Architecture decision records
 ├── lakeforge/                  # Core Python Package
 │   ├── bronze/                # Raw ingestion, audit stamps, schema evolution
 │   ├── cli/                   # lakeforge CLI tool
@@ -308,7 +304,9 @@ For the complete interactive experience, comprehensive class and function refere
 
 👉 **[LakeForge Official Interactive Documentation](https://jayarampogakula.github.io/lakeforge-docs/)**
 
-You can also run the documentation locally by simply opening [`docs/index.html`](docs/index.html) in your browser.
+👉 **[Documentation Repository (lakeforge-docs)](https://github.com/jayarampogakula/lakeforge-docs)**
+
+All source connector guides, data quality manuals, architecture specifications, tutorials, and API references are actively maintained at [**jayarampogakula/lakeforge-docs**](https://github.com/jayarampogakula/lakeforge-docs).
 
 ---
 
