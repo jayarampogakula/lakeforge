@@ -68,7 +68,7 @@ jobs:
         run: |
           for JOB_ID in $(echo '${{ steps.find-job.outputs.job_ids }}' | jq -r '.[]'); do
             echo "Generating resource for job $JOB_ID ..."
-            databricks bundle generate job --existing-job "$JOB_ID"
+            databricks bundle generate job --existing-job-id "$JOB_ID" --force
           done
           echo "Validating bundle ..."
           databricks bundle validate --target dev
