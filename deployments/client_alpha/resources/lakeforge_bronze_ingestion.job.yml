@@ -1,20 +1,22 @@
 resources:
   jobs:
     lakeforge_bronze_ingestion:
-      name: LakeForge Bronze Ingestion
+      # Exported from UI job 456514839081144; params aligned with the current
+      # Bronze_Generic_Pipeline widget set (source_config_file; pipeline_name/
+      # source_system/load_type were removed in the widget refactor).
+      name: lakeforge-bronze-ingestion-${bundle.target}
       tasks:
         - task_key: bronze_ingestion
           disabled: false
           email_notifications: {}
           notebook_task:
             base_parameters:
-              client_id: ""
+              client_id: client_alpha
               config_dir: ""
-              create_views: ""
-              environment: dev
-              load_type: ""
-              pipeline_name: ""
-              source_system: ""
+              create_views: "false"
+              environment: ${bundle.target}
+              stage: ${bundle.target}
+              source_config_file: sales
             notebook_path: ../src/Bronze_Generic_Pipeline.ipynb
             source: WORKSPACE
           run_if: ALL_SUCCESS
