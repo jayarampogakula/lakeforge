@@ -54,8 +54,9 @@ jobs:
           fi
 
       # Multi-account support: host comes from the registry (workspace_host),
-      # fallback to a per-stage secret, else the global secret. Token: per-stage
-      # secret DATABRICKS_<STAGE>_TOKEN (e.g. DATABRICKS_TEST_TOKEN), else global.
+      # fallback to a per-stage secret, else the global secret. Credentials: a
+      # per-stage service principal via OAuth client ID + secret (M2M - takes
+      # precedence), or a per-stage PAT via DATABRICKS_<STAGE>_TOKEN, else global.
       - name: Select stage credentials
         run: |
           set -euo pipefail
@@ -70,7 +71,15 @@ jobs:
             echo "Using global DATABRICKS_HOST secret (stage in this workspace/account)."
           fi
           STAGE_TOKEN='${{ secrets[format('DATABRICKS_%s_TOKEN', inputs.stage)] }}'
-          if [ -n "$STAGE_TOKEN" ]; then
+          STAGE_CLIENT_ID='${{ secrets[format('DATABRICKS_%s_CLIENT_ID', inputs.stage)] }}'
+          STAGE_CLIENT_SECRET='${{ secrets[format('DATABRICKS_%s_CLIENT_SECRET', inputs.stage)] }}'
+          if [ -n "$STAGE_CLIENT_ID" ] && [ -n "$STAGE_CLIENT_SECRET" ]; then
+            # Service principal OAuth (M2M): client ID + secret win over any token.
+            echo "DATABRICKS_CLIENT_ID=$STAGE_CLIENT_ID" >> "$GITHUB_ENV"
+            echo "DATABRICKS_CLIENT_SECRET=$STAGE_CLIENT_SECRET" >> "$GITHUB_ENV"
+            echo "DATABRICKS_TOKEN=" >> "$GITHUB_ENV"
+            echo "Using service-principal OAuth client credentials (M2M) for stage '${{ inputs.stage }}'."
+          elif [ -n "$STAGE_TOKEN" ]; then
             echo "DATABRICKS_TOKEN=$STAGE_TOKEN" >> "$GITHUB_ENV"
             echo "Using stage-specific token for stage '${{ inputs.stage }}'."
           else

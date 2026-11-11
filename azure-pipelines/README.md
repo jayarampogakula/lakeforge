@@ -42,17 +42,28 @@ in a **different Databricks account/workspace**:
    ```
 
 2. Run `lakeforge sync-stages` — every bundle target for that stage gets a `host:` entry.
-3. **Credentials for that account** — create a service principal in that workspace (needs
-   job create/manage + write to `/Workspace/Shared`) and add entries to the `databricks-auth`
-   variable group (Pipelines > Library):
-   * `DATABRICKS_TEST_HOST` *(optional — the registry host above already wins; mark secret if you prefer)*
-   * `DATABRICKS_TEST_TOKEN` *(required — SP OAuth client secret or PAT for that account; mark as secret)*
+3. **Credentials for that account** — create a service principal (SP) in that workspace
+   (needs job create/manage + write to `/Workspace/Shared`). The SP is the **identity**, not
+   a token — the pipeline then authenticates as it via ONE of two credential types (entries
+   in the `databricks-auth` variable group, Pipelines > Library, stage **UPPERCASE**,
+   e.g. TEST for stage `test`):
 
-   Name entries `DATABRICKS_<STAGE>_HOST` / `DATABRICKS_<STAGE>_TOKEN` with the stage **UPPERCASE**.
+   * **SP OAuth (recommended)** — on the SP's page: *Manage > OAuth secrets > Generate secret*.
+     Add `DATABRICKS_TEST_CLIENT_ID` (the SP's application/UUID, plain) +
+     `DATABRICKS_TEST_CLIENT_SECRET` (mark as secret). The Databricks CLI exchanges the pair
+     for short-lived tokens automatically (M2M OAuth).
+     **The OAuth secret is NOT a bearer token — never paste it into `DATABRICKS_TEST_TOKEN`.**
+   * **SP PAT (alternative)** — generate a personal access token *for the service principal*
+     and put it in `DATABRICKS_TEST_TOKEN` (mark as secret).
+
+   Host: `DATABRICKS_TEST_HOST` is optional (the registry `workspace_host` above wins anyway).
+
+   Precedence per stage: SP OAuth client ID+secret → per-stage PAT → global `DATABRICKS_TOKEN`.
 4. Run the **dab_deploy** / **ci_cd** pipeline with that stage as usual — the "Select Stage
    Credentials" step picks the per-stage host (registry first, then the variable group entry)
-   and token, falling back to the global `DATABRICKS_HOST`/`DATABRICKS_TOKEN` when a stage
-   has none (same account).
+   and credentials (SP OAuth pair first, then per-stage PAT, then the global
+   `DATABRICKS_TOKEN`) for stages hosted in another account; same-account stages keep
+   using the globals.
 
 A separate account also means a **separate Unity Catalog metastore**: run the bundle's
 `setup_environment_provisioning` task once in that workspace so its catalogs/schemas

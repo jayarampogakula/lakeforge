@@ -51,14 +51,17 @@ steps:
 
   # Multi-account support: host comes from the registry (workspace_host),
   # fallback to per-stage variable group entries, else the global ones.
-  # Add DATABRICKS_<STAGE>_HOST / DATABRICKS_<STAGE>_TOKEN (e.g.
-  # DATABRICKS_TEST_HOST / DATABRICKS_TEST_TOKEN) to the 'databricks-auth'
-  # variable group for stages hosted in another account.
+  # Credentials: per-stage service principal via OAuth client ID + secret
+  # (DATABRICKS_<STAGE>_CLIENT_ID/_CLIENT_SECRET, M2M - takes precedence),
+  # or a per-stage PAT (DATABRICKS_<STAGE>_TOKEN), else the global ones.
+  # Add these to the 'databricks-auth' variable group (Pipelines > Library).
   - script: |
       set -euo pipefail
       STAGE_UPPER=$(echo "${{ parameters.stage }}" | tr '[:lower:]' '[:upper:]')
       HOST_VAR="DATABRICKS_${STAGE_UPPER}_HOST"
       TOKEN_VAR="DATABRICKS_${STAGE_UPPER}_TOKEN"
+      CLIENT_ID_VAR="DATABRICKS_${STAGE_UPPER}_CLIENT_ID"
+      CLIENT_SECRET_VAR="DATABRICKS_${STAGE_UPPER}_CLIENT_SECRET"
       STAGE_HOST=$(jq -r --arg s "${{ parameters.stage }}" '.[$s].workspace_host // empty' configs/environments/env_settings.json)
       if [ -z "$STAGE_HOST" ] && [ -n "${!HOST_VAR:-}" ]; then
         STAGE_HOST="${!HOST_VAR}"
@@ -69,7 +72,13 @@ steps:
       else
         echo "Using global DATABRICKS_HOST (stage in this workspace/account)."
       fi
-      if [ -n "${!TOKEN_VAR:-}" ]; then
+      if [ -n "${!CLIENT_ID_VAR:-}" ] && [ -n "${!CLIENT_SECRET_VAR:-}" ]; then
+        # Service principal OAuth (M2M): client ID + secret win over any token.
+        echo "##vso[task.setvariable variable=DATABRICKS_CLIENT_ID]${!CLIENT_ID_VAR}"
+        echo "##vso[task.setvariable variable=DATABRICKS_CLIENT_SECRET;issecret=true]${!CLIENT_SECRET_VAR}"
+        echo "##vso[task.setvariable variable=DATABRICKS_TOKEN]"
+        echo "Using service-principal OAuth client credentials (M2M) for stage '${{ parameters.stage }}'."
+      elif [ -n "${!TOKEN_VAR:-}" ]; then
         echo "##vso[task.setvariable variable=DATABRICKS_TOKEN]${!TOKEN_VAR}"
         echo "Using stage-specific token for stage '${{ parameters.stage }}'."
       else
@@ -96,6 +105,8 @@ steps:
     env:
       DATABRICKS_HOST: $(DATABRICKS_HOST)
       DATABRICKS_TOKEN: $(DATABRICKS_TOKEN)
+      DATABRICKS_CLIENT_ID: $(DATABRICKS_CLIENT_ID)
+      DATABRICKS_CLIENT_SECRET: $(DATABRICKS_CLIENT_SECRET)
 
   - script: |
       set -e
@@ -105,6 +116,8 @@ steps:
     env:
       DATABRICKS_HOST: $(DATABRICKS_HOST)
       DATABRICKS_TOKEN: $(DATABRICKS_TOKEN)
+      DATABRICKS_CLIENT_ID: $(DATABRICKS_CLIENT_ID)
+      DATABRICKS_CLIENT_SECRET: $(DATABRICKS_CLIENT_SECRET)
 
   # First-deployment step: provisions the stage's catalogs/schemas/volumes
   # (idempotent). Requires the environment_setup job resource in the bundle.
@@ -117,3 +130,5 @@ steps:
     env:
       DATABRICKS_HOST: $(DATABRICKS_HOST)
       DATABRICKS_TOKEN: $(DATABRICKS_TOKEN)
+      DATABRICKS_CLIENT_ID: $(DATABRICKS_CLIENT_ID)
+      DATABRICKS_CLIENT_SECRET: $(DATABRICKS_CLIENT_SECRET)
