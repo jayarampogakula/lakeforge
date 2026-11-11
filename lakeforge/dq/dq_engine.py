@@ -372,6 +372,11 @@ class DQEngine:
         failed_dfs = []
         
         for rule in rules:
+            # Drop None-valued keys (e.g. dataclass asdict emits threshold=None)
+            # so dict.get(key, default) falls back to the default instead of
+            # receiving None and raising TypeError on the comparisons below.
+            rule = {k: v for k, v in rule.items() if v is not None}
+
             # Support both monolithic pipeline_config and normal config keys
             raw_rule_type = rule.get("rule_type", rule.get("validation_type"))
             rule_name = rule.get("rule_name", raw_rule_type)

@@ -1,15 +1,37 @@
 {
-  "source_name": "sales",
-  "source_type": "file",
-  "file_format": "csv",
-  "file_path": "/Volumes/lakeforge_client_alpha_dev/raw_files/landing/sales.csv",
-  "target_catalog": "lakeforge_client_alpha_dev",
-  "target_schema": "bronze",
-  "target_table": "sales",
-  "load_type": "batch",
-  "merge_strategy": "append",
-  "options": {
-    "header": "true",
-    "inferSchema": "true"
+  "salesin": {
+    "source_type": "csv",
+    "storage_account": "lakehouse",
+    "file_path": "/Volumes/lakeforge_client_alpha_dev/bronze/landing/salesIn/",
+    "file_format": "csv",
+    "options": {
+      "header": "true",
+      "inferSchema": "true"
+    },
+    "catalog": "lakehouse",
+    "schema": "bronze",
+    "bronze_table": "salein",
+    "business_key": ["order_details_id"],
+    "header_row": 4,
+    "sanitize_column_names": true,
+    "incremental": true,
+    "merge_strategy": "append"
+  },
+  "salesus": {
+    "source_type": "xlsx",
+    "storage_account": "lakehouse",
+    "file_path": "/Volumes/lakeforge_client_alpha_dev/bronze/landing/Salesus/",
+    "file_format": "xls",
+    "options": {
+      "header": "true",
+      "inferSchema": "true"
+    },
+    "catalog": "lakehouse",
+    "schema": "bronze",
+    "bronze_table": "salesus",
+    "business_key": ["order_id"],
+    "header_row": 5,
+    "sanitize_column_names": true,
+    "merge_strategy": "upsert"
   }
 }

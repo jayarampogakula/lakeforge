@@ -18,6 +18,7 @@ explicitly provided, and can load entire directories of a single format or
 directories containing a mix of formats.
 """
 import os
+import re
 from pathlib import Path
 from typing import Optional, Dict, List, Any, Tuple
 
@@ -75,6 +76,40 @@ FORMAT_ALIASES = {
 SUPPORTED_FORMATS = sorted(
     {"csv", "json", "parquet", "avro", "orc", "xml", "excel", "delta", "text"}
 )
+
+# Characters Delta forbids in column names (space, comma, semicolon, braces,
+# parentheses, newline, tab, equals) plus anything outside [A-Za-z0-9_];
+# all replaced with underscores during name sanitization.
+_INVALID_COLUMN_NAME_CHARS = re.compile(r"[^A-Za-z0-9_]+")
+
+
+def sanitize_column_names(names: List[str]) -> List[str]:
+    """
+    Make a list of column names Delta-safe: every run of characters outside
+    [A-Za-z0-9_] becomes a single underscore, names are lowercased and
+    trimmed, duplicates are suffixed (a, a -> a, a_2), empty ones become
+    column_N (e.g. "Order ID" becomes "order_id").
+    """
+    seen: Dict[str, int] = {}
+    cleaned: List[str] = []
+    for i, name in enumerate(names):
+        new = _INVALID_COLUMN_NAME_CHARS.sub("_", str(name or "")).strip("_").lower()
+        if not new:
+            new = f"column_{i + 1}"
+        if new in seen:
+            seen[new] += 1
+            new = f"{new}_{seen[new]}"
+        else:
+            seen[new] = 0
+        cleaned.append(new)
+    return cleaned
+
+
+def apply_sanitized_columns(df: Any) -> Any:
+    """Rename a DataFrame (or dict of DataFrames) to Delta-safe column names."""
+    if isinstance(df, dict):
+        return {k: apply_sanitized_columns(v) for k, v in df.items()}
+    return df.toDF(*sanitize_column_names(df.columns))
 
 
 class UniversalLoader:
@@ -195,6 +230,8 @@ class UniversalLoader:
         infer_schema: bool = True,
         multi_line: Optional[bool] = None,
         sheet_name: Any = 0,
+        header_row: Optional[int] = None,
+        files: Optional[List[str]] = None,
         row_tag: Optional[str] = None,
         column_specs: Optional[Dict[str, Tuple[int, int]]] = None,
         version_as_of: Optional[int] = None,
@@ -216,6 +253,10 @@ class UniversalLoader:
             infer_schema: Whether to infer the schema (csv).
             multi_line: Multi-line records (json/csv). Auto-set for json/jsonl.
             sheet_name: Excel sheet name or index (or list/None for all).
+            header_row: 1-based row holding the column names (csv/excel);
+                        rows above it (title/preamble) are skipped.
+            files: Specific files to read (incremental loading) - overrides
+                   the path/glob/directory enumeration when provided.
             row_tag: XML record element (auto-detected when None).
             column_specs: Fixed-width column spec {name: (start, end)} (text).
             version_as_of: Delta time-travel version.
@@ -240,6 +281,22 @@ class UniversalLoader:
         opts = dict(options or {})
 
         if fmt == "csv":
+            if header_row is not None and int(header_row) > 1:
+                # The real header sits on `header_row`; rows above it are
+                # title/preamble. Spark's CSV reader only supports a header on
+                # row 1, so such files are parsed with pandas on the driver
+                # (landing-zone files are typically small) and converted.
+                return self._load_csv_with_header_row(
+                    path,
+                    header_row=int(header_row),
+                    delimiter=delimiter,
+                    encoding=encoding,
+                    infer_schema=infer_schema,
+                    options=opts,
+                    files=files,
+                )
+            if files:
+                path = ",".join(files)
             if delimiter is None:
                 ext = os.path.splitext(path.rstrip("/").rstrip("*"))[1].lstrip(".").lower()
                 if raw_fmt in ("tsv",) or ext in ("tsv",):
@@ -264,6 +321,10 @@ class UniversalLoader:
             if opts:
                 reader = reader.options(**opts)
             return reader.load(path)
+
+        # Incremental loading for the remaining Spark-native formats
+        if files:
+            path = ",".join(files)
 
         if fmt == "json":
             # .jsonl/.ndjson are line-delimited; .json may be multi-line records
@@ -303,9 +364,26 @@ class UniversalLoader:
             )
 
         if fmt == "excel":
-            return self._get_loader("excel").load_excel(
-                path, sheet_name=sheet_name
-            )
+            # pandas header is the 0-based row holding the column names;
+            # config header_row is 1-based (1 -> 0, the pandas default).
+            excel_header = int(header_row) - 1 if header_row else 0
+            excel_targets = files if files else self._resolve_excel_paths(path)
+            if not excel_targets:
+                raise FileNotFoundError(f"No Excel files found under '{path}'")
+            excel_loader = self._get_loader("excel")
+            if len(excel_targets) == 1:
+                return excel_loader.load_excel(
+                    excel_targets[0], sheet_name=sheet_name, header=excel_header
+                )
+            # Multiple files: load each and union by column name
+            dfs = [
+                excel_loader.load_excel(f, sheet_name=sheet_name, header=excel_header)
+                for f in excel_targets
+            ]
+            base = dfs[0]
+            for extra in dfs[1:]:
+                base = base.unionByName(extra, allowMissingColumns=True)
+            return base
 
         if fmt == "delta":
             return self._get_loader("delta").load(
@@ -324,11 +402,120 @@ class UniversalLoader:
     # Convenience alias
     load_any = load
 
+    @staticmethod
+    def _resolve_excel_paths(path: str) -> List[str]:
+        """
+        Expand an Excel path, glob, or DIRECTORY into the list of Excel
+        files to read (pandas cannot read a directory directly).
+        """
+        cleaned = path.rstrip("/")
+        p = Path(cleaned)
+        if p.is_dir():
+            return sorted(
+                str(f) for f in p.rglob("*")
+                if f.is_file()
+                and f.suffix.lstrip(".").lower() in ("xlsx", "xls", "xlsm")
+                and not f.name.startswith((".", "_"))
+            )
+        return [cleaned]
+
+    @classmethod
+    def list_source_files(cls, path: str, file_format: Optional[str] = None) -> List[str]:
+        """
+        Enumerate the source files under a path for incremental loading.
+        Directories are filtered by the canonical format's extensions
+        (csv/tsv/psv for csv; xlsx/xls/xlsm for excel); for any other
+        format all non-hidden files are returned.
+        """
+        cleaned = path.rstrip("/").rstrip("*")
+        p = Path(cleaned)
+        if p.is_file():
+            return [str(p)]
+        if not p.is_dir():
+            # Not listable - let the reader raise a meaningful error
+            return [cleaned]
+        exts = None
+        if file_format:
+            fmt = cls.normalize_format(file_format)
+            exts = {
+                "csv": {"csv", "tsv", "psv"},
+                "excel": {"xlsx", "xls", "xlsm"},
+            }.get(fmt)
+        return sorted(
+            str(f) for f in p.rglob("*")
+            if f.is_file()
+            and not f.name.startswith((".", "_"))
+            and (exts is None or f.suffix.lstrip(".").lower() in exts)
+        )
+
+    def _load_csv_with_header_row(
+        self,
+        path: str,
+        header_row: int,
+        delimiter: Optional[str] = None,
+        encoding: Optional[str] = None,
+        infer_schema: bool = True,
+        options: Optional[Dict[str, str]] = None,
+        files: Optional[List[str]] = None,
+    ) -> DataFrame:
+        """
+        Read CSV data whose header row is not the first row (title/preamble
+        rows precede it). Spark's CSV reader has no skip-rows option, so the
+        files are parsed with pandas on the driver and converted to Spark -
+        intended for the typically-small landing-zone files.
+
+        Args:
+            path: File path, glob, or directory of CSV files
+            header_row: 1-based row number containing the column names
+            delimiter: Field delimiter (default ',')
+            encoding: File encoding (default utf-8)
+            infer_schema: Whether data types are inferred (False -> all strings)
+            options: Extra pandas read_csv options (header/inferSchema dropped)
+            files: Specific files to read (incremental loading); overrides
+                   the path/glob/directory enumeration
+
+        Returns:
+            Spark DataFrame
+        """
+        import pandas as pd
+
+        if files:
+            targets = list(files)
+        else:
+            cleaned = path.rstrip("/").rstrip("*")
+            targets = [cleaned]
+            p = Path(cleaned)
+            if p.is_dir():
+                targets = sorted(
+                    str(f) for f in p.rglob("*")
+                    if f.is_file() and not f.name.startswith((".", "_"))
+                )
+        if not targets:
+            raise FileNotFoundError(f"No files found to load under '{path}'")
+
+        read_opts: Dict[str, Any] = {
+            "skiprows": header_row - 1,  # skip the rows above the header
+            "header": 0,                 # first row after skipping = header
+            "delimiter": delimiter or ",",
+            "encoding": encoding or "utf-8",
+        }
+        if not infer_schema:
+            read_opts["dtype"] = str
+        for k, v in (options or {}).items():
+            if k not in ("header", "inferSchema"):
+                read_opts[k] = v
+
+        frames = [pd.read_csv(f, **read_opts) for f in targets]
+        pandas_df = (
+            pd.concat(frames, ignore_index=True) if len(frames) > 1 else frames[0]
+        )
+        return self.spark.createDataFrame(pandas_df)
+
     # ------------------------------------------------------------------ #
     # Config-driven loading
     # ------------------------------------------------------------------ #
 
-    def load_from_config(self, ing_config: Any) -> DataFrame:
+    def load_from_config(self, ing_config: Any, files: Optional[List[str]] = None) -> DataFrame:
         """
         Load a source described by a LakeForge IngestionConfig object.
 
@@ -359,7 +546,10 @@ class UniversalLoader:
         if sheet_name is None:
             sheet_name = 0
 
-        return self.load(
+        # 1-based row holding the column names (rows above it are skipped)
+        header_row = getattr(ing_config, "header_row", None)
+
+        df = self.load(
             ing_config.source_path,
             file_format=file_format,
             header=ing_config.header,
@@ -368,10 +558,20 @@ class UniversalLoader:
             infer_schema=ing_config.infer_schema,
             multi_line=multi_line,
             sheet_name=sheet_name,
+            header_row=header_row,
+            files=files,
             row_tag=row_tag,
             version_as_of=version_as_of,
             options=options,
         )
+
+        # Clean column names (spaces/special characters -> underscores) so the
+        # bronze Delta write never fails with the Delta invalid-characters
+        # error. No-op for already-clean names.
+        if getattr(ing_config, "sanitize_column_names", True):
+            df = apply_sanitized_columns(df)
+
+        return df
 
     # ------------------------------------------------------------------ #
     # Directory utilities

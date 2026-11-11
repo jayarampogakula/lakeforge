@@ -1,0 +1,96 @@
+{
+  "source_name": "salesin",
+  "rules": [
+    {
+      "rule_name": "order_details_id_not_null",
+      "rule_type": "null_check",
+      "column": "order_details_id",
+      "action": "quarantine",
+      "severity": "error"
+    },
+    {
+      "rule_name": "order_details_id_unique",
+      "rule_type": "duplicate_check",
+      "columns": ["order_details_id"],
+      "action": "quarantine",
+      "severity": "error"
+    },
+    {
+      "rule_name": "order_id_not_null",
+      "rule_type": "null_check",
+      "column": "order_id",
+      "action": "quarantine",
+      "severity": "error"
+    },
+    {
+      "rule_name": "quantity_at_least_one",
+      "rule_type": "range_check",
+      "column": "quantity",
+      "min_value": 1,
+      "action": "quarantine",
+      "severity": "error"
+    },
+    {
+      "rule_name": "unit_price_positive",
+      "rule_type": "range_check",
+      "column": "unit_price",
+      "min_value": 0.01,
+      "action": "quarantine",
+      "severity": "error"
+    },
+    {
+      "rule_name": "total_price_positive",
+      "rule_type": "range_check",
+      "column": "total_price",
+      "min_value": 0.01,
+      "action": "quarantine",
+      "severity": "error"
+    },
+    {
+      "rule_name": "order_date_not_null",
+      "rule_type": "null_check",
+      "column": "order_date",
+      "action": "quarantine",
+      "severity": "error"
+    },
+    {
+      "rule_name": "order_time_format_valid",
+      "rule_type": "regex_check",
+      "column": "order_time",
+      "pattern": "^[0-9]{2}:[0-9]{2}:[0-9]{2}$",
+      "action": "quarantine",
+      "severity": "error"
+    },
+    {
+      "rule_name": "pizza_name_not_null",
+      "rule_type": "null_check",
+      "column": "pizza_name",
+      "action": "quarantine",
+      "severity": "error"
+    },
+    {
+      "rule_name": "pizza_category_not_null",
+      "rule_type": "null_check",
+      "column": "pizza_category",
+      "action": "quarantine",
+      "severity": "error"
+    },
+    {
+      "rule_name": "pizza_category_allowed",
+      "rule_type": "allowed_values",
+      "column": "pizza_category",
+      "allowed_values": ["Chicken", "Classic", "Supreme", "Veggie"],
+      "action": "quarantine",
+      "severity": "error"
+    },
+    {
+      "rule_name": "pizza_size_allowed",
+      "rule_type": "allowed_values",
+      "column": "pizza_size",
+      "allowed_values": ["S", "M", "L", "XL", "XXL"],
+      "action": "quarantine",
+      "severity": "error"
+    }
+  ],
+  "action_on_failure": "quarantine"
+}

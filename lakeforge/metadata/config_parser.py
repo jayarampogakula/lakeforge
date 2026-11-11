@@ -36,6 +36,20 @@ class IngestionConfig:
     delimiter: Optional[str] = None  # inferred from file extension when None (e.g. .tsv -> tab)
     encoding: Optional[str] = "utf-8"
     sheet_name: Optional[str] = None
+    # 1-based row number holding the column names; rows above it
+    # (title/preamble lines) are skipped. None = header on the first row.
+    header_row: Optional[int] = None
+
+    # Clean loaded column names: spaces/special characters become
+    # underscores so names are Delta-safe (e.g. "order id" -> "order_id").
+    sanitize_column_names: bool = True
+
+    # Incremental loading: only files not yet ingested (tracked in the
+    # file-inventory table) are read on each run. Auto-Loader-like behaviour.
+    incremental: bool = False
+    # Optional override for the file-inventory table
+    # (default: <target_catalog>.monitoring.ingested_files)
+    incremental_log_table: Optional[str] = None
 
     # Extra Spark reader options passed straight to the format reader
     # (e.g. rowTag for XML, multiLine for JSON, versionAsOf for Delta)
@@ -394,9 +408,25 @@ class ConfigParser:
         header_val = str(options.get("header", "true")).lower() == "true"
         infer_val = str(options.get("inferSchema", "true")).lower() == "true"
         sheet_name_val = options.get("sheet_name", source_data.get("sheet_name"))
+        # Header row: 1-based row number holding the column names (rows above
+        # it are skipped) - accepted top-level or inside "options".
+        header_row_val = source_data.get("header_row", options.get("header_row"))
+        if header_row_val is not None:
+            header_row_val = int(header_row_val)
+        # Column-name cleaning on load (spaces/special chars -> underscores)
+        sanitize_val = source_data.get("sanitize_column_names", options.get("sanitize_column_names", True))
+        if isinstance(sanitize_val, str):
+            sanitize_val = sanitize_val.strip().lower() == "true"
+        # Incremental loading: only new files are read per run
+        incremental_val = source_data.get("incremental", options.get("incremental", False))
+        if isinstance(incremental_val, str):
+            incremental_val = incremental_val.strip().lower() == "true"
+        incremental_log_val = source_data.get("incremental_log_table", options.get("incremental_log_table"))
         # Well-known options are parsed into typed fields; every other option
         # (rowTag, multiLine, versionAsOf, ...) is passed straight to the reader
-        consumed_keys = {"header", "inferSchema", "delimiter", "encoding", "sheet_name"}
+        consumed_keys = {"header", "inferSchema", "delimiter", "encoding", "sheet_name",
+                         "header_row", "sanitize_column_names",
+                         "incremental", "incremental_log_table"}
         reader_opts = {k: v for k, v in options.items() if k not in consumed_keys}
         
         mode_val = "append"
@@ -438,6 +468,10 @@ class ConfigParser:
             encoding=options.get("encoding", "utf-8"),
             infer_schema=infer_val,
             sheet_name=sheet_name_val,
+            header_row=header_row_val,
+            sanitize_column_names=sanitize_val,
+            incremental=incremental_val,
+            incremental_log_table=incremental_log_val,
             reader_options=reader_opts,
             mode=mode_val,
             business_key=source_data.get("business_key", []),

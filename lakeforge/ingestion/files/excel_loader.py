@@ -5,6 +5,7 @@ Handles Excel file ingestion with multi-sheet support and normalization.
 from pyspark.sql import SparkSession, DataFrame
 from pyspark.sql.types import StructType, StringType
 from typing import Optional, Dict, Any, List, Union
+import datetime
 import pandas as pd
 from pathlib import Path
 
@@ -96,6 +97,18 @@ class ExcelLoader:
         for col in pandas_df.columns:
             if pd.api.types.is_datetime64_any_dtype(pandas_df[col]):
                 pandas_df[col] = pandas_df[col].astype(str)
+            elif pandas_df[col].dtype == object:
+                # .xls/xlrd often surfaces dates/times as object columns
+                # holding datetime/time objects, which Arrow cannot convert -
+                # stringify.
+                sample = pandas_df[col].dropna().head(20)
+                if len(sample) and all(
+                    isinstance(v, (datetime.date, datetime.datetime, datetime.time))
+                    for v in sample
+                ):
+                    pandas_df[col] = pandas_df[col].apply(
+                        lambda v: str(v) if pd.notna(v) else None
+                    )
         
         # Create Spark DataFrame
         spark_df = self.spark.createDataFrame(pandas_df)
