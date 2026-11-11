@@ -41,6 +41,11 @@ in a **different Databricks account/workspace**:
    ```
 
 2. Run `lakeforge sync-stages` — every bundle target for that stage gets a `host:` entry.
+
+   **Never put credentials in `env_settings.json`** — it is committed to git AND synced
+   into every deploy root under `/Workspace/Shared/...` (readable by all workspace users).
+   Only non-secret values belong there (the host URL is fine). Secrets stay in repo
+   secrets / variable groups: `DATABRICKS_<STAGE>_CLIENT_ID`/`_CLIENT_SECRET`/`_TOKEN`.
 3. **Credentials for that account** — create a service principal (SP) in that workspace
    (needs job create/manage + write to `/Workspace/Shared`). The SP is the **identity**, not
    a token — CI then authenticates as it via ONE of two credential types (repo secrets,
