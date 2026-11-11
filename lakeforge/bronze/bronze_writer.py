@@ -127,7 +127,12 @@ class BronzeWriter:
             df = self.add_audit_columns(df, source_system=source_system)
         
         # Full table name
-        full_table_name = f"{catalog}.{schema}.{target_table}"
+        if catalog and schema:
+            full_table_name = f"{catalog}.{schema}.{target_table}"
+        elif schema:
+            full_table_name = f"{schema}.{target_table}"
+        else:
+            full_table_name = target_table
         
         # Track metrics
         metrics = {
@@ -308,7 +313,12 @@ class BronzeWriter:
             schema: Schema name
             table_name: Tracker table name
         """
-        full_table_name = f"{catalog}.{schema}.{table_name}"
+        if catalog and schema:
+            full_table_name = f"{catalog}.{schema}.{table_name}"
+        elif schema:
+            full_table_name = f"{schema}.{table_name}"
+        else:
+            full_table_name = table_name
         
         create_sql = f"""
         CREATE TABLE IF NOT EXISTS {full_table_name} (
@@ -377,7 +387,12 @@ class BronzeWriter:
         tracking_df = self.spark.createDataFrame(tracking_data)
         
         # Append to tracker table
-        full_tracker_name = f"{catalog}.{schema}.{tracker_table}"
+        if catalog and schema:
+            full_tracker_name = f"{catalog}.{schema}.{tracker_table}"
+        elif schema:
+            full_tracker_name = f"{schema}.{tracker_table}"
+        else:
+            full_tracker_name = tracker_table
         tracking_df.write.format("delta").mode("append").saveAsTable(full_tracker_name)
 
 
