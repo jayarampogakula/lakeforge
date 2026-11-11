@@ -1,35 +1,70 @@
 {
   "dev": {
-    "catalog": "lakehouse",
-    "bronze_schema": "bronze",
-    "silver_schema": "silver",
-    "gold_schema": "gold",
-    "monitoring_schema": "monitoring",
-    "client_catalog_pattern": "lakeforge_{client_id}_{environment}",
-    "additional_catalogs": {}
+    "catalogs": {
+      "lakehouse": {
+        "bronze_schema": "bronze",
+        "silver_schema": "silver",
+        "gold_schema": "gold",
+        "monitoring_schema": "monitoring"
+      },
+      "lakehouse_alpha": {
+        "landing_schema": "landing",
+        "bronze_schema": "bronze",
+        "silver_schema": "silver",
+        "gold_schema": "gold",
+        "monitoring_schema": "monitoring"
+      }
+    }
   },
   "test": {
-    "catalog": "lakehouse_test",
-    "bronze_schema": "bronze",
-    "silver_schema": "silver",
-    "gold_schema": "gold",
-    "monitoring_schema": "monitoring",
-    "client_catalog_pattern": "lakeforge_{client_id}_{environment}"
+    "catalogs": {
+      "lakehouse_test": {
+        "bronze_schema": "bronze",
+        "silver_schema": "silver",
+        "gold_schema": "gold",
+        "monitoring_schema": "monitoring"
+      },
+      "lakehouse_alpha_test": {
+        "landing_schema": "landing",
+        "bronze_schema": "bronze",
+        "silver_schema": "silver",
+        "gold_schema": "gold",
+        "monitoring_schema": "monitoring"
+      }
+    }
   },
   "staging": {
-    "catalog": "lakehouse_staging",
-    "bronze_schema": "bronze",
-    "silver_schema": "silver",
-    "gold_schema": "gold",
-    "monitoring_schema": "monitoring",
-    "client_catalog_pattern": "lakeforge_{client_id}_{environment}"
+    "catalogs": {
+      "lakehouse_staging": {
+        "bronze_schema": "bronze",
+        "silver_schema": "silver",
+        "gold_schema": "gold",
+        "monitoring_schema": "monitoring"
+      },
+      "lakehouse_alpha_staging": {
+        "landing_schema": "landing",
+        "bronze_schema": "bronze",
+        "silver_schema": "silver",
+        "gold_schema": "gold",
+        "monitoring_schema": "monitoring"
+      }
+    }
   },
   "prod": {
-    "catalog": "lakehouse_prod",
-    "bronze_schema": "bronze",
-    "silver_schema": "silver",
-    "gold_schema": "gold",
-    "monitoring_schema": "monitoring",
-    "client_catalog_pattern": "lakeforge_{client_id}_{environment}"
+    "catalogs": {
+      "lakehouse_prod": {
+        "bronze_schema": "bronze",
+        "silver_schema": "silver",
+        "gold_schema": "gold",
+        "monitoring_schema": "monitoring"
+      },
+      "lakehouse_alpha_prod": {
+        "landing_schema": "landing",
+        "bronze_schema": "bronze",
+        "silver_schema": "silver",
+        "gold_schema": "gold",
+        "monitoring_schema": "monitoring"
+      }
+    }
   }
 }

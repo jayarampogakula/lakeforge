@@ -132,6 +132,23 @@ def test_get_environment_config(mock_config_dir):
     assert env_config["catalog"] == "lakehouse"
     assert env_config["bronze_schema"] == "bronze"
 
+
+def test_get_environment_config_multi_catalog():
+    """Verify that multi-catalog configurations under 'catalogs' map resolve cleanly."""
+    dev_cfg = ConfigParser.get_environment_config("configs", "dev")
+    assert dev_cfg["catalog"] == "lakehouse"
+    assert dev_cfg["bronze_schema"] == "bronze"
+    assert "catalogs" in dev_cfg
+    assert "lakehouse" in dev_cfg["catalogs"]
+    assert "lakehouse_alpha" in dev_cfg["catalogs"]
+
+    # Select specific catalog
+    alpha_cfg = ConfigParser.get_environment_config("configs", "dev", catalog_name="lakehouse_alpha")
+    assert alpha_cfg["catalog"] == "lakehouse_alpha"
+    assert alpha_cfg["landing_schema"] == "landing"
+    assert alpha_cfg["bronze_schema"] == "bronze"
+    assert alpha_cfg["gold_schema"] == "gold"
+
 def test_get_ingestion_config(mock_config_dir):
     ing_config = ConfigParser.get_ingestion_config(str(mock_config_dir), "customers", "dev")
     assert isinstance(ing_config, IngestionConfig)

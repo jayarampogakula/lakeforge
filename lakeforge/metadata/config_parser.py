@@ -315,10 +315,12 @@ class ConfigParser:
     @staticmethod
     def get_environment_config(
         config_dir_or_file: str,
-        environment: str
+        environment: str,
+        catalog_name: Optional[str] = None
     ) -> Dict[str, Any]:
         """
         Extract and construct environment configuration settings.
+        Supports multi-catalog specification via the 'catalogs' map.
         """
         path = Path(config_dir_or_file)
         env_data = None
@@ -359,13 +361,35 @@ class ConfigParser:
             raise ValueError(f"Environment configurations not found in {config_dir_or_file} "
                              f"(and no central env_settings.json to fall back to)")
             
+        raw_env = None
         if environment in env_data:
-            return env_data[environment]
-            
-        if "catalog" in env_data:
-            return env_data
-            
-        raise ValueError(f"Config for environment '{environment}' not found in env_settings")
+            raw_env = env_data[environment]
+        elif "catalog" in env_data or "catalogs" in env_data:
+            raw_env = env_data
+        else:
+            raise ValueError(f"Config for environment '{environment}' not found in env_settings")
+
+        if not isinstance(raw_env, dict):
+            return raw_env
+
+        res = dict(raw_env)
+        # If catalogs map is present, flatten the selected or first catalog into top-level keys
+        # so downstream callers (env_config["catalog"], env_config["bronze_schema"], etc.)
+        # continue to work seamlessly without requiring hardcoded default catalogs.
+        if "catalogs" in res and isinstance(res["catalogs"], dict) and res["catalogs"]:
+            selected_cat = (
+                catalog_name
+                if (catalog_name and catalog_name in res["catalogs"])
+                else next(iter(res["catalogs"].keys()))
+            )
+            cat_schemas = res["catalogs"].get(selected_cat, {})
+            if "catalog" not in res or catalog_name:
+                res["catalog"] = selected_cat
+            if isinstance(cat_schemas, dict):
+                for k, v in cat_schemas.items():
+                    if k not in res or catalog_name:
+                        res[k] = v
+        return res
 
     @staticmethod
     def get_ingestion_config(
