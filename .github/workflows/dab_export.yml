@@ -1,0 +1,78 @@
+# Manual DAB export: pick a job by its client_id + release TAGS and generate
+# the bundle definition (resources/*.job.yml) under deployments/<client_id>/, committed back.
+name: DAB Export (Job to Bundle)
+
+on:
+  workflow_dispatch:
+    inputs:
+      client_id:
+        description: 'Client ID (matches job tag: client_id)'
+        required: true
+        type: string
+      release:
+        description: 'Release (matches job tag: release)'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+env:
+  DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+  DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
+
+jobs:
+  export-dab:
+    name: Export tagged job to DAB
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Databricks CLI
+        uses: databricks/setup-cli@main
+
+      - name: Find job by client_id and release tags
+        id: find-job
+        run: |
+          JOB_IDS=$(databricks jobs list --output json \
+            | jq -c '[.[] | select(.settings.tags.client_id == "${{ inputs.client_id }}" and .settings.tags.release == "${{ inputs.release }}") | .job_id]')
+          if [ -z "$JOB_IDS" ] || [ "$JOB_IDS" = "[]" ]; then
+            echo "::error::No job found with tags client_id=${{ inputs.client_id }}, release=${{ inputs.release }}. Add these tags to the job first."
+            exit 1
+          fi
+          echo "Found job(s): $JOB_IDS"
+          echo "job_ids=$JOB_IDS" >> "$GITHUB_OUTPUT"
+
+      - name: Prepare client bundle directory
+        run: |
+          BUNDLE_DIR="deployments/${{ inputs.client_id }}"
+          mkdir -p "$BUNDLE_DIR/resources"
+          if [ ! -f "$BUNDLE_DIR/databricks.yml" ]; then
+            echo "Creating bundle definition for client ${{ inputs.client_id }} from template"
+            sed -e "s/__CLIENT_ID__/${{ inputs.client_id }}/g" \
+                deployments/_template/databricks.yml > "$BUNDLE_DIR/databricks.yml"
+          fi
+
+      - name: Generate bundle resources from tagged job(s)
+        working-directory: deployments/${{ inputs.client_id }}
+        run: |
+          for JOB_ID in $(echo '${{ steps.find-job.outputs.job_ids }}' | jq -r '.[]'); do
+            echo "Generating resource for job $JOB_ID ..."
+            databricks bundle generate job --existing-job "$JOB_ID"
+          done
+          echo "Validating bundle ..."
+          databricks bundle validate --target dev
+
+      - name: Commit generated bundle definition
+        run: |
+          git config user.name "dab-export-bot"
+          git config user.email "actions@github.com"
+          git add deployments/
+          if git diff --cached --quiet; then
+            echo "No bundle changes to commit (job already exported)."
+          else
+            git commit -m "Export DAB: client=${{ inputs.client_id }} release=${{ inputs.release }}"
+            git push
+            echo "Committed bundle definition to $GITHUB_REF_NAME"
+          fi

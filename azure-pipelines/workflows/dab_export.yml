@@ -1,0 +1,98 @@
+# Manual DAB export (Azure DevOps version of .github/workflows/dab_export.yml)
+# Run from: Pipelines > Run pipeline (pick your branch), enter client_id + release.
+# Finds the job(s) tagged client_id/release and generates deployments/<client_id> resources,
+# then commits the definition back to the branch the pipeline ran from.
+#
+# Prerequisites:
+#   1. Variable group 'databricks-auth' (Pipelines > Library) containing:
+#        DATABRICKS_HOST  = https://dbc-49ef00ea-2dda.cloud.databricks.com
+#        DATABRICKS_TOKEN = service principal token (mark as secret)
+#      Alternatively, replace both with an AzureCLI@2 step that fetches a
+#      Microsoft Entra token for the Databricks resource ID
+#      2ff814a6-3304-4ab8-85cb-cd0e6f879c1d via a DevOps service connection.
+#   2. The target job must carry tags: client_id and release.
+
+trigger: none
+pr: none
+
+parameters:
+  - name: client_id
+    displayName: 'Client ID (matches job tag: client_id)'
+    type: string
+    default: client_alpha
+  - name: release
+    displayName: 'Release (matches job tag: release)'
+    type: string
+    default: ''
+
+variables:
+  - group: databricks-auth
+
+pool:
+  vmImage: ubuntu-latest
+
+steps:
+  - checkout: self
+    persistCredentials: true
+
+  - script: |
+      set -e
+      curl -fsSL https://raw.githubusercontent.com/databricks/setup-cli/main/install.sh | sh
+      databricks --version
+    displayName: 'Install Databricks CLI'
+
+  - script: |
+      set -e
+      JOB_IDS=$(databricks jobs list --output json \
+        | jq -c '[.[] | select(.settings.tags.client_id == "${{ parameters.client_id }}" and .settings.tags.release == "${{ parameters.release }}") | .job_id]')
+      if [ -z "$JOB_IDS" ] || [ "$JOB_IDS" = "[]" ]; then
+        echo "##vso[task.logissue type=error]No job found with tags client_id=${{ parameters.client_id }}, release=${{ parameters.release }}. Add these tags to the job first."
+        exit 1
+      fi
+      echo "Found job(s): $JOB_IDS"
+      echo "##vso[task.setvariable variable=JOB_IDS]$JOB_IDS"
+    displayName: 'Find job by client_id and release tags'
+    env:
+      DATABRICKS_HOST: $(DATABRICKS_HOST)
+      DATABRICKS_TOKEN: $(DATABRICKS_TOKEN)
+
+  - script: |
+      set -e
+      BUNDLE_DIR="deployments/${{ parameters.client_id }}"
+      mkdir -p "$BUNDLE_DIR/resources"
+      if [ ! -f "$BUNDLE_DIR/databricks.yml" ]; then
+        echo "Creating bundle definition for client ${{ parameters.client_id }} from template"
+        sed -e "s/__CLIENT_ID__/${{ parameters.client_id }}/g" \
+            deployments/_template/databricks.yml > "$BUNDLE_DIR/databricks.yml"
+      fi
+    displayName: 'Prepare client bundle directory'
+    env:
+      DATABRICKS_HOST: $(DATABRICKS_HOST)
+
+  - script: |
+      set -e
+      for JOB_ID in $(echo "$JOB_IDS" | jq -r '.[]'); do
+        echo "Generating resource for job $JOB_ID ..."
+        databricks bundle generate job --existing-job "$JOB_ID"
+      done
+      echo "Validating bundle ..."
+      databricks bundle validate --target dev
+    displayName: 'Generate bundle resources from tagged job(s)'
+    workingDirectory: $(Build.SourcesDirectory)/deployments/${{ parameters.client_id }}
+    env:
+      DATABRICKS_HOST: $(DATABRICKS_HOST)
+      DATABRICKS_TOKEN: $(DATABRICKS_TOKEN)
+
+  - script: |
+      set -e
+      git config user.name "dab-export-bot"
+      git config user.email "devops@lakeforge"
+      git add deployments/
+      if git diff --cached --quiet; then
+        echo "No bundle changes to commit (job already exported)."
+      else
+        git commit -m "Export DAB: client=${{ parameters.client_id }} release=${{ parameters.release }}"
+        git push origin HEAD:$(Build.SourceBranch)
+        echo "Committed bundle definition to $(Build.SourceBranchName)"
+      fi
+    displayName: 'Commit generated bundle definition'

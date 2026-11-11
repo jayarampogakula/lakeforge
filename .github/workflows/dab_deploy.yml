@@ -1,0 +1,60 @@
+# Manual DAB deploy: deploy deployments/<client_id> to a chosen stage.
+# Branch policy: test/staging/prod may ONLY be deployed from 'main';
+# 'dev' may be deployed from any branch (including feature branches).
+name: DAB Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      client_id:
+        description: 'Client ID (bundle located at deployments/<client_id>)'
+        required: true
+        type: string
+      stage:
+        description: 'Target stage'
+        required: true
+        default: 'dev'
+        type: choice
+        options:
+          - dev
+          - test
+          - staging
+          - prod
+
+permissions:
+  contents: read
+
+env:
+  DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+  DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
+
+jobs:
+  deploy:
+    name: Deploy ${{ inputs.client_id }} to ${{ inputs.stage }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Enforce branch policy (non-dev stages deploy from main only)
+        if: inputs.stage != 'dev' && github.ref_name != 'main'
+        run: |
+          echo "::error::Stage '${{ inputs.stage }}' may only be deployed from branch 'main' (current: '${{ github.ref_name }}'). Feature branches can deploy to dev only."
+          exit 1
+
+      - name: Install Databricks CLI
+        uses: databricks/setup-cli@main
+
+      - name: Validate bundle
+        working-directory: deployments/${{ inputs.client_id }}
+        run: |
+          if [ ! -f databricks.yml ]; then
+            echo "::error::No bundle found at deployments/${{ inputs.client_id }} - run the 'DAB Export (Job to Bundle)' workflow first."
+            exit 1
+          fi
+          databricks bundle validate --target "${{ inputs.stage }}"
+
+      - name: Deploy bundle
+        working-directory: deployments/${{ inputs.client_id }}
+        run: |
+          databricks bundle deploy --target "${{ inputs.stage }}"

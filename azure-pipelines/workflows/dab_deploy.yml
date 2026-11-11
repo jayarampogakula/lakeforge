@@ -1,0 +1,72 @@
+# Manual DAB deploy (Azure DevOps version of .github/workflows/dab_deploy.yml)
+# Run from: Pipelines > Run pipeline, choose your branch, enter client_id + stage.
+# Branch policy: test/staging/prod deploy from 'main' ONLY; 'dev' from any branch.
+#
+# Prerequisites: variable group 'databricks-auth' (Pipelines > Library) containing
+#   DATABRICKS_HOST  = https://dbc-49ef00ea-2dda.cloud.databricks.com
+#   DATABRICKS_TOKEN = service principal token (mark as secret)
+# Optional: for a prod approval gate, convert the job to a 'deployment:' job tied to
+# an Azure DevOps Environment with an Approvals check (see the official
+# Azure DevOps + DABs guide for the pattern).
+
+trigger: none
+pr: none
+
+parameters:
+  - name: client_id
+    displayName: 'Client ID (bundle located at deployments/<client_id>)'
+    type: string
+    default: client_alpha
+  - name: stage
+    displayName: 'Target stage'
+    type: string
+    default: dev
+    values:
+      - dev
+      - test
+      - staging
+      - prod
+
+variables:
+  - group: databricks-auth
+
+pool:
+  vmImage: ubuntu-latest
+
+steps:
+  - checkout: self
+
+  - script: |
+      set -e
+      curl -fsSL https://raw.githubusercontent.com/databricks/setup-cli/main/install.sh | sh
+      databricks --version
+    displayName: 'Install Databricks CLI'
+
+  - script: |
+      if [ "${{ parameters.stage }}" != "dev" ] && [ "$(Build.SourceBranchName)" != "main" ]; then
+        echo "##vso[task.logissue type=error]Stage '${{ parameters.stage }}' may only be deployed from branch 'main' (current: '$(Build.SourceBranchName)'). Feature branches can deploy to dev only."
+        exit 1
+      fi
+    displayName: 'Enforce branch policy (non-dev stages deploy from main only)'
+
+  - script: |
+      set -e
+      if [ ! -f databricks.yml ]; then
+        echo "##vso[task.logissue type=error]No bundle found at deployments/${{ parameters.client_id }} - run the DAB export pipeline first."
+        exit 1
+      fi
+      databricks bundle validate --target ${{ parameters.stage }}
+    displayName: 'Validate bundle'
+    workingDirectory: $(Build.SourcesDirectory)/deployments/${{ parameters.client_id }}
+    env:
+      DATABRICKS_HOST: $(DATABRICKS_HOST)
+      DATABRICKS_TOKEN: $(DATABRICKS_TOKEN)
+
+  - script: |
+      set -e
+      databricks bundle deploy --target ${{ parameters.stage }}
+    displayName: 'Deploy bundle'
+    workingDirectory: $(Build.SourcesDirectory)/deployments/${{ parameters.client_id }}
+    env:
+      DATABRICKS_HOST: $(DATABRICKS_HOST)
+      DATABRICKS_TOKEN: $(DATABRICKS_TOKEN)

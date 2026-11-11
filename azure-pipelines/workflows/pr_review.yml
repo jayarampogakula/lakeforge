@@ -1,0 +1,70 @@
+# Azure DevOps PR review & duplicate-function gate
+# (mirror of .github/workflows/pr_review.yml)
+# Triggers automatically on pull requests targeting main/dev. Runs the same
+# lakeforge/cli/pr_reviewer.py gate (stdlib-only, no pip install needed) and posts
+# the markdown report to the PR as a comment thread via the Azure DevOps REST API.
+#
+# To make this a REQUIRED check: Repos > Branch Policies on main >
+# Build validation > add this pipeline. Then the PR cannot complete until this run passes.
+# (Optional hard gate: add --fail-on-duplicate to the reviewer invocation below
+#  so duplicate functions / hardcoded secrets FAIL the build.)
+
+trigger: none
+
+pr:
+  branches:
+    include:
+      - main
+      - dev
+
+pool:
+  vmImage: ubuntu-latest
+
+steps:
+  - checkout: self
+    fetchDepth: 0
+
+  - task: UsePythonVersion@0
+    displayName: 'Use Python 3.10'
+    inputs:
+      versionSpec: '3.10'
+
+  - script: |
+      set -e
+      if [ -z "$PR_TARGET" ]; then
+        echo "Not a pull request run - nothing to review."
+        exit 0
+      fi
+      echo "Analyzing PR #$(System.PullRequest.PullRequestId) against base branch 'origin/$PR_TARGET'..."
+      python lakeforge/cli/pr_reviewer.py \
+        --base-ref "origin/$PR_TARGET" \
+        --repo-root . \
+        | tee pr_review_comment.md
+    displayName: 'Run LakeForge PR Reviewer & Duplicate Function Check'
+    env:
+      PR_TARGET: $(System.PullRequest.TargetBranchName)
+
+  - script: |
+      set -e
+      if [ ! -s pr_review_comment.md ]; then
+        echo "No review report produced - skipping PR comment."
+        exit 0
+      fi
+      jq -n --rawfile body pr_review_comment.md \
+        '{comments: [{parentCommentId: 0, content: $body, commentType: 1}], status: 1}' > pr_review_payload.json
+      STATUS_CODE=$(curl -sS -o pr_thread_response.json -w "%{http_code}" -X POST \
+        -H "Authorization: Bearer $SYSTEM_ACCESSTOKEN" \
+        -H "Content-Type: application/json" \
+        -d @pr_review_payload.json \
+        "$SYSTEM_COLLECTIONURI/$SYSTEM_TEAMPROJECTID/_apis/git/repositories/$SYSTEM_REPOSITORYID/pullRequests/$(System.PullRequest.PullRequestId)/threads?api-version=7.1-preview.1")
+      if [ "$STATUS_CODE" != "200" ] && [ "$STATUS_CODE" != "201" ]; then
+        echo "##vso[task.logissue type=warning]Failed to post PR comment (HTTP $STATUS_CODE) - the full report is available in the pipeline log above."
+      else
+        echo "PR review comment posted successfully."
+      fi
+    displayName: 'Post review report as PR comment'
+    env:
+      SYSTEM_ACCESSTOKEN: $(System.AccessToken)
+      SYSTEM_COLLECTIONURI: $(System.TeamFoundationCollectionUri)
+      SYSTEM_TEAMPROJECTID: $(System.TeamProjectId)
+      SYSTEM_REPOSITORYID: $(Build.Repository.ID)

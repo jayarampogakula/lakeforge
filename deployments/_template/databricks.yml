@@ -1,0 +1,60 @@
+# LakeForge CLIENT BUNDLE template
+# The export workflows (GitHub Actions / Azure DevOps) copy this file to
+# deployments/<client_id>/databricks.yml, replacing __CLIENT_ID__ placeholders.
+bundle:
+  name: lakeforge___CLIENT_ID__
+
+include:
+  # Per-resource files: *_job.yml and *.json
+  - resources/*.yml
+  - resources/*.json
+
+variables:
+  stage:
+    description: "Deployment stage (dev, test, staging, prod)"
+    default: "dev"
+  client_id:
+    description: "Client scope - fixed to this bundle's client"
+    default: "__CLIENT_ID__"
+
+# Shared framework code, notebooks and configs live at the REPO root,
+# outside this bundle folder - sync them into this bundle's workspace root.
+sync:
+  paths:
+    - ../../pipelines
+    - ../../configs
+    - ../../lakeforge
+
+targets:
+  dev:
+    # No 'mode: development' on purpose: it would prefix all job names with
+    # "[dev <username>]". Plain target keeps clean names; root_path stays
+    # user-scoped below to keep personal deployments isolated.
+    default: true
+    workspace:
+      root_path: ~/.lakeforge___CLIENT_ID__/dev
+    variables:
+      stage: "dev"
+
+  test:
+    # Production mode: locked bundle state, no uncommitted changes permitted
+    mode: production
+    workspace:
+      root_path: /Workspace/Shared/lakeforge___CLIENT_ID__/test
+    variables:
+      stage: "test"
+
+  staging:
+    # Production mode: locked bundle state, no uncommitted changes permitted
+    mode: production
+    workspace:
+      root_path: /Workspace/Shared/lakeforge___CLIENT_ID__/staging
+    variables:
+      stage: "staging"
+
+  prod:
+    mode: production
+    workspace:
+      root_path: /Workspace/Shared/lakeforge___CLIENT_ID__/prod
+    variables:
+      stage: "prod"
