@@ -83,6 +83,23 @@ def load_stage_registry(config_dir: Optional[str] = None) -> List[str]:
     return stages
 
 
+def load_stage_hosts(config_dir: Optional[str] = None) -> dict:
+    """
+    Optional per-stage workspace hosts: a stage whose registry value contains
+    "workspace_host": "https://..." deploys to that (e.g. separate-account)
+    Databricks workspace; stages without it stay in the current workspace.
+    Returns {stage_name: host} for stages that define one.
+    """
+    path = _resolve_registry_path(config_dir)
+    with open(path, encoding="utf-8") as fh:
+        registry = json.load(fh)
+    hosts = {}
+    for stage, settings in registry.items():
+        if isinstance(settings, dict) and settings.get("workspace_host"):
+            hosts[stage] = settings["workspace_host"]
+    return hosts
+
+
 _DEFAULT_FALLBACK_STAGES = ["dev", "test", "staging", "prod"]
 
 
@@ -99,12 +116,16 @@ def supported_stages(config_dir: Optional[str] = None) -> List[str]:
         return list(_DEFAULT_FALLBACK_STAGES)
 
 
-def _render_sandbox_target(stage: str, dev_prefix: str) -> List[str]:
+def _render_sandbox_target(stage: str, dev_prefix: str, host: Optional[str] = None) -> List[str]:
     lines = [f"  {stage}:"]
     lines.extend(_DEV_COMMENT)
     lines += [
         "    default: true",
         "    workspace:",
+    ]
+    if host:
+        lines.append(f"      host: {host}")
+    lines += [
         f"      root_path: ~/{dev_prefix}/dev",
         "    variables:",
         f'      stage: "{stage}"',
@@ -112,12 +133,16 @@ def _render_sandbox_target(stage: str, dev_prefix: str) -> List[str]:
     return lines
 
 
-def _render_production_target(stage: str, prefix: str) -> List[str]:
+def _render_production_target(stage: str, prefix: str, host: Optional[str] = None) -> List[str]:
     lines = [f"  {stage}:"]
     lines.extend(_PROD_COMMENT)
     lines += [
         "    mode: production",
         "    workspace:",
+    ]
+    if host:
+        lines.append(f"      host: {host}")
+    lines += [
         f"      root_path: /Workspace/Shared/{prefix}/{stage}",
         "    variables:",
         f'      stage: "{stage}"',
@@ -125,14 +150,18 @@ def _render_production_target(stage: str, prefix: str) -> List[str]:
     return lines
 
 
-def render_targets(stages: List[str], bundle_scope: str, client: Optional[str] = None) -> str:
+def render_targets(stages: List[str], bundle_scope: str, client: Optional[str] = None,
+                  hosts: Optional[dict] = None) -> str:
     """
     Render the full `targets:` block for a bundle databricks.yml.
 
     bundle_scope "global": root bundle - prefix is always `lakeforge`.
     bundle_scope "client": per-client bundle - prefix is `lakeforge_<client>`;
       `client` may be a literal client id or the __CLIENT_ID__ template placeholder.
+    hosts: optional {stage: url} map (from load_stage_hosts) - stages with a
+      host get `host:` under their workspace block (separate-account deploys).
     """
+    hosts = hosts or {}
     if bundle_scope == "client" and client:
         dev_prefix = f".lakeforge_{client}"
         shared_prefix = f"lakeforge_{client}"
@@ -143,9 +172,9 @@ def render_targets(stages: List[str], bundle_scope: str, client: Optional[str] =
     blocks: List[List[str]] = []
     for stage in stages:
         if stage == "dev":
-            blocks.append(_render_sandbox_target(stage, dev_prefix))
+            blocks.append(_render_sandbox_target(stage, dev_prefix, hosts.get(stage)))
         else:
-            blocks.append(_render_production_target(stage, shared_prefix))
+            blocks.append(_render_production_target(stage, shared_prefix, hosts.get(stage)))
 
     lines = ["targets:"]
     for i, block in enumerate(blocks):
@@ -155,14 +184,15 @@ def render_targets(stages: List[str], bundle_scope: str, client: Optional[str] =
     return "\n".join(lines) + "\n"
 
 
-def _expected_targets(yml_path: Path, stages: List[str], bundle_scope: str, client: Optional[str]) -> Tuple[str, str]:
+def _expected_targets(yml_path: Path, stages: List[str], bundle_scope: str, client: Optional[str],
+                      hosts: Optional[dict] = None) -> Tuple[str, str]:
     """Return (current_text, expected_text) for a bundle file."""
     current = yml_path.read_text(encoding="utf-8")
     marker = "\ntargets:"
     idx = current.find(marker)
     if idx == -1:
         raise ValueError(f"No 'targets:' block found in {yml_path} - regenerate skipped.")
-    expected = current[: idx + 1] + render_targets(stages, bundle_scope, client)
+    expected = current[: idx + 1] + render_targets(stages, bundle_scope, client, hosts)
     return current, expected
 
 
@@ -190,13 +220,17 @@ def sync_stages(check_only: bool = False, config_dir: Optional[str] = None) -> i
         return 1
 
     stages = load_stage_registry(config_dir)
+    hosts = load_stage_hosts(config_dir)
     print(f"Stage registry: {', '.join(stages)}")
+    if hosts:
+        for stage, url in hosts.items():
+            print(f"  host override: {stage} -> {url}")
 
     changed = 0
     for yml_path, scope, client in discover_bundles(repo_root):
         rel = yml_path.relative_to(repo_root).as_posix()
         try:
-            current, expected = _expected_targets(yml_path, stages, scope, client)
+            current, expected = _expected_targets(yml_path, stages, scope, client, hosts)
         except ValueError as e:
             print(f"  SKIP  {rel}: {e}")
             continue

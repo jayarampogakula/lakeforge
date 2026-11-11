@@ -138,6 +138,34 @@ stages:
                     fi
                   displayName: "Validate Stage Against Registry"
 
+                # Multi-account support: host comes from the registry (workspace_host),
+                # fallback to per-stage variable group entries, else the global ones.
+                # Add DATABRICKS_<STAGE>_HOST / DATABRICKS_<STAGE>_TOKEN (e.g.
+                # DATABRICKS_TEST_HOST / DATABRICKS_TEST_TOKEN) to the 'databricks-auth'
+                # variable group for stages hosted in another account.
+                - script: |
+                    set -euo pipefail
+                    STAGE_UPPER=$(echo "${{ parameters.stage }}" | tr '[:lower:]' '[:upper:]')
+                    HOST_VAR="DATABRICKS_${STAGE_UPPER}_HOST"
+                    TOKEN_VAR="DATABRICKS_${STAGE_UPPER}_TOKEN"
+                    STAGE_HOST=$(jq -r --arg s "${{ parameters.stage }}" '.[$s].workspace_host // empty' configs/environments/env_settings.json)
+                    if [ -z "$STAGE_HOST" ] && [ -n "${!HOST_VAR:-}" ]; then
+                      STAGE_HOST="${!HOST_VAR}"
+                    fi
+                    if [ -n "$STAGE_HOST" ]; then
+                      echo "##vso[task.setvariable variable=DATABRICKS_HOST]$STAGE_HOST"
+                      echo "Using stage-specific host: $STAGE_HOST"
+                    else
+                      echo "Using global DATABRICKS_HOST (stage in this workspace/account)."
+                    fi
+                    if [ -n "${!TOKEN_VAR:-}" ]; then
+                      echo "##vso[task.setvariable variable=DATABRICKS_TOKEN]${!TOKEN_VAR}"
+                      echo "Using stage-specific token for stage '${{ parameters.stage }}'."
+                    else
+                      echo "Using global DATABRICKS_TOKEN for stage '${{ parameters.stage }}'."
+                    fi
+                  displayName: "Select Stage Credentials"
+
                 - script: |
                     BRANCH_NAME="$(Build.SourceBranchName)"
                     TARGET_STAGE="${{ parameters.stage }}"

@@ -151,6 +151,30 @@ jobs:
           exit 1
         fi
 
+    # Multi-account support: host comes from the registry (workspace_host),
+    # fallback to a per-stage secret, else the global secret. Token: per-stage
+    # secret DATABRICKS_<STAGE>_TOKEN (e.g. DATABRICKS_TEST_TOKEN), else global.
+    - name: Select Stage Credentials
+      run: |
+        set -euo pipefail
+        STAGE_HOST=$(jq -r --arg s "$STAGE" '.[$s].workspace_host // empty' configs/environments/env_settings.json)
+        if [ -z "$STAGE_HOST" ]; then
+          STAGE_HOST='${{ secrets[format('DATABRICKS_%s_HOST', env.STAGE)] }}'
+        fi
+        if [ -n "$STAGE_HOST" ]; then
+          echo "DATABRICKS_HOST=$STAGE_HOST" >> "$GITHUB_ENV"
+          echo "Using stage-specific host: $STAGE_HOST"
+        else
+          echo "Using global DATABRICKS_HOST secret (stage in this workspace/account)."
+        fi
+        STAGE_TOKEN='${{ secrets[format('DATABRICKS_%s_TOKEN', env.STAGE)] }}'
+        if [ -n "$STAGE_TOKEN" ]; then
+          echo "DATABRICKS_TOKEN=$STAGE_TOKEN" >> "$GITHUB_ENV"
+          echo "Using stage-specific token for stage '$STAGE'."
+        else
+          echo "Using global DATABRICKS_TOKEN secret for stage '$STAGE'."
+        fi
+
     - name: Enforce Branch Policy (non-dev stages deploy from main only)
       if: env.STAGE != 'dev' && github.ref != 'refs/heads/main'
       run: |

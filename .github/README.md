@@ -23,6 +23,40 @@ its top-level keys are the stages, its values hold each stage's catalogs/schemas
    no workflow YAML edits needed. The push-to-`main` auto-promotion targets the first
    non-dev stage in the registry.
 
+   Known manual spot: the pipeline notebooks' `environment` widget dropdowns are still
+   hardcoded (`pipelines/*.ipynb`) — update those choices too when a stage is renamed.
+
+## Deploying a stage to a separate account
+
+A stage normally deploys to the same workspace as the repo. To host a stage (e.g. `test`)
+in a **different Databricks account/workspace**:
+
+1. **Point the stage at the other workspace** — add `workspace_host` inside that stage's
+   object in `configs/environments/env_settings.json`:
+
+   ```json
+   "test": {
+     "catalog": "lakehouse_test",
+     ...
+     "workspace_host": "https://dbc-xxxxxxxx.cloud.databricks.com"
+   }
+   ```
+
+2. Run `lakeforge sync-stages` — every bundle target for that stage gets a `host:` entry.
+3. **Credentials for that account** — create a service principal in that workspace (needs
+   job create/manage + write to `/Workspace/Shared`) and add repo secrets:
+   * `DATABRICKS_TEST_HOST` *(optional — the registry host above already wins)*
+   * `DATABRICKS_TEST_TOKEN` *(required — SP OAuth client secret or PAT for that account)*
+
+   Name secrets `DATABRICKS_<STAGE>_TOKEN` with the stage **UPPERCASE**.
+4. Run **DAB Deploy** / **CI/CD** with that stage as usual — the "Select stage credentials"
+   step picks the per-stage host (registry first, then the secret) and token, falling back
+   to the global `DATABRICKS_HOST`/`DATABRICKS_TOKEN` when a stage has none (same account).
+
+A separate account also means a **separate Unity Catalog metastore**: run the bundle's
+`setup_environment_provisioning` task once in that workspace so its catalogs/schemas
+get created there.
+
 ## The Four Workflows
 
 | Workflow | Trigger | Purpose |

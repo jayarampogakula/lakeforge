@@ -24,6 +24,42 @@ its top-level keys are the stages, its values hold each stage's catalogs/schemas
 3. Commit. Pipelines, the CLI, and the DAB workflows pick the new stages up automatically —
    no pipeline YAML edits needed.
 
+   Known manual spot: the pipeline notebooks' `environment` widget dropdowns are still
+   hardcoded (`pipelines/*.ipynb`) — update those choices too when a stage is renamed.
+
+## Deploying a stage to a separate account
+
+A stage normally deploys to the same workspace as the repo. To host a stage (e.g. `test`)
+in a **different Databricks account/workspace**:
+
+1. **Point the stage at the other workspace** — add `workspace_host` inside that stage's
+   object in `configs/environments/env_settings.json`:
+
+   ```json
+   "test": {
+     "catalog": "lakehouse_test",
+     ...
+     "workspace_host": "https://dbc-xxxxxxxx.cloud.databricks.com"
+   }
+   ```
+
+2. Run `lakeforge sync-stages` — every bundle target for that stage gets a `host:` entry.
+3. **Credentials for that account** — create a service principal in that workspace (needs
+   job create/manage + write to `/Workspace/Shared`) and add entries to the `databricks-auth`
+   variable group (Pipelines > Library):
+   * `DATABRICKS_TEST_HOST` *(optional — the registry host above already wins; mark secret if you prefer)*
+   * `DATABRICKS_TEST_TOKEN` *(required — SP OAuth client secret or PAT for that account; mark as secret)*
+
+   Name entries `DATABRICKS_<STAGE>_HOST` / `DATABRICKS_<STAGE>_TOKEN` with the stage **UPPERCASE**.
+4. Run the **dab_deploy** / **ci_cd** pipeline with that stage as usual — the "Select Stage
+   Credentials" step picks the per-stage host (registry first, then the variable group entry)
+   and token, falling back to the global `DATABRICKS_HOST`/`DATABRICKS_TOKEN` when a stage
+   has none (same account).
+
+A separate account also means a **separate Unity Catalog metastore**: run the bundle's
+`setup_environment_provisioning` task once in that workspace so its catalogs/schemas
+get created there.
+
 ## The Four Pipelines
 
 | Pipeline | Trigger | Purpose |
