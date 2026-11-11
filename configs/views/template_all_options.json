@@ -1,0 +1,25 @@
+{
+  "vw_template_table_based": {
+    "view_name": "vw_template_table_based",
+    "description": "Reference template for a table-based analytical view with projection and row filtering.",
+    "definition_type": "table",
+    "schema_type": "silver",
+    "view_type": "temp",
+    "source_table": "customers_clean",
+    "select_columns": [
+      "customer_id",
+      "customer_name",
+      "primary_email",
+      "region"
+    ],
+    "filter_condition": "region = 'EMEA'"
+  },
+  "vw_template_query_based": {
+    "view_name": "vw_template_query_based",
+    "description": "Reference template for a persistent query-based view across Gold analytical marts.",
+    "definition_type": "query",
+    "schema_type": "gold",
+    "view_type": "persistent",
+    "query": "SELECT customer_id, total_revenue, total_orders FROM {catalog}.{gold_schema}.gold_customer_sales_mart WHERE total_revenue >= 1000.0"
+  }
+}

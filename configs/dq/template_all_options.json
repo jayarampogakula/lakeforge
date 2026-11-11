@@ -1,0 +1,109 @@
+{
+  "table_name": "template_all_options",
+  "catalog": "{catalog}",
+  "schema": "{silver_schema}",
+  "quarantine_table": "{catalog}.quarantine.template_all_options_quarantine",
+  "enable_scorecard": true,
+  "action_on_failure": "quarantine",
+  "rules": [
+    {
+      "rule_id": "RULE_001",
+      "rule_name": "check_mandatory_primary_key_not_null",
+      "rule_type": "null_check",
+      "column": "record_id",
+      "severity": "error",
+      "action": "quarantine",
+      "threshold_percent": 0.0
+    },
+    {
+      "rule_id": "RULE_002",
+      "rule_name": "check_record_uniqueness",
+      "rule_type": "duplicate_check",
+      "columns": [
+        "record_id",
+        "tenant_id"
+      ],
+      "severity": "error",
+      "action": "quarantine"
+    },
+    {
+      "rule_id": "RULE_003",
+      "rule_name": "check_transaction_amount_in_valid_range",
+      "rule_type": "range_check",
+      "column": "transaction_amount",
+      "min_value": 0.01,
+      "max_value": 1000000.0,
+      "severity": "error",
+      "action": "quarantine"
+    },
+    {
+      "rule_id": "RULE_004",
+      "rule_name": "check_valid_email_regex_pattern",
+      "rule_type": "regex_check",
+      "column": "contact_email",
+      "pattern": "^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$",
+      "severity": "warning",
+      "action": "warn"
+    },
+    {
+      "rule_id": "RULE_005",
+      "rule_name": "check_status_allowed_domain_values",
+      "rule_type": "allowed_values",
+      "column": "status",
+      "allowed_values": [
+        "ACTIVE",
+        "PENDING",
+        "SUSPENDED",
+        "TERMINATED",
+        "ARCHIVED"
+      ],
+      "severity": "error",
+      "action": "quarantine"
+    },
+    {
+      "rule_id": "RULE_006",
+      "rule_name": "check_transaction_amount_datatype",
+      "rule_type": "datatype_check",
+      "column": "transaction_amount",
+      "expected_type": "double",
+      "severity": "error",
+      "action": "fail"
+    },
+    {
+      "rule_id": "RULE_007",
+      "rule_name": "check_start_and_end_timestamp_consistency",
+      "rule_type": "custom_sql",
+      "custom_sql": "event_timestamp <= current_timestamp()",
+      "severity": "warning",
+      "action": "warn"
+    },
+    {
+      "rule_id": "RULE_008",
+      "rule_name": "check_customer_referential_integrity",
+      "rule_type": "referential_integrity",
+      "source_column": "customer_id",
+      "reference_table": "{catalog}.silver.customers_clean",
+      "reference_column": "customer_id",
+      "severity": "error",
+      "action": "quarantine"
+    },
+    {
+      "rule_id": "RULE_009",
+      "rule_name": "check_optional_notes_null_rate_tolerance",
+      "rule_type": "null_rate_threshold",
+      "column": "optional_notes",
+      "threshold": 0.35,
+      "severity": "info",
+      "action": "alert"
+    },
+    {
+      "rule_id": "RULE_010",
+      "rule_name": "check_batch_minimum_row_count_threshold",
+      "rule_type": "row_count_threshold",
+      "baseline_count": 100,
+      "threshold_percent": 20.0,
+      "severity": "warning",
+      "action": "warn"
+    }
+  ]
+}

@@ -1,0 +1,127 @@
+{
+  "version": "1.0.0",
+  "description": "Comprehensive reference template demonstrating all LakeForge Unity Catalog governance, RBAC, PII masking, and row filter options.",
+  "roles": {
+    "template_data_engineers": {
+      "description": "Full read/write permissions for pipeline orchestration across all layers",
+      "principals": [
+        "data_engineers_group",
+        "sp_lakeforge_orchestration"
+      ],
+      "catalogs": {
+        "{catalog}": [
+          "USE CATALOG"
+        ]
+      },
+      "schemas": {
+        "{catalog}.bronze": [
+          "USE SCHEMA",
+          "SELECT",
+          "MODIFY",
+          "CREATE TABLE"
+        ],
+        "{catalog}.silver": [
+          "USE SCHEMA",
+          "SELECT",
+          "MODIFY",
+          "CREATE TABLE"
+        ],
+        "{catalog}.gold": [
+          "USE SCHEMA",
+          "SELECT",
+          "MODIFY",
+          "CREATE TABLE"
+        ]
+      }
+    },
+    "template_analysts": {
+      "description": "Read-only access to governed silver tables and gold marts",
+      "principals": [
+        "business_analysts_group"
+      ],
+      "catalogs": {
+        "{catalog}": [
+          "USE CATALOG"
+        ]
+      },
+      "schemas": {
+        "{catalog}.silver": [
+          "USE SCHEMA"
+        ],
+        "{catalog}.gold": [
+          "USE SCHEMA",
+          "SELECT"
+        ]
+      },
+      "tables": {
+        "{catalog}.silver.sample_data_clean": [
+          "SELECT"
+        ]
+      },
+      "views": {
+        "{catalog}.gold.vw_template_query_based": [
+          "SELECT"
+        ]
+      }
+    }
+  },
+  "clients": {
+    "client_alpha": {
+      "description": "Tenant specific overrides and roles for client_alpha",
+      "roles": {
+        "alpha_analysts": {
+          "principals": [
+            "client_alpha_bi_group"
+          ],
+          "catalogs": {
+            "{client_catalog}": [
+              "USE CATALOG"
+            ]
+          },
+          "schemas": {
+            "{client_catalog}.gold": [
+              "USE SCHEMA",
+              "SELECT"
+            ]
+          }
+        }
+      }
+    }
+  },
+  "masking_functions": [
+    {
+      "name": "template_mask_email",
+      "schema": "silver",
+      "input_column": "primary_email",
+      "input_type": "STRING",
+      "return_type": "STRING",
+      "expression": "CASE WHEN is_account_group_member('pii_admins') THEN primary_email ELSE concat(substring(primary_email, 1, 2), '****@****.com') END"
+    },
+    {
+      "name": "template_mask_phone",
+      "schema": "silver",
+      "input_column": "phone",
+      "input_type": "STRING",
+      "return_type": "STRING",
+      "expression": "CASE WHEN is_account_group_member('pii_admins') THEN phone ELSE concat('XXX-XXX-', substring(phone, -4)) END"
+    }
+  ],
+  "column_masks": [
+    {
+      "table": "{catalog}.silver.sample_data_clean",
+      "column": "primary_email",
+      "function": "{catalog}.silver.template_mask_email"
+    }
+  ],
+  "row_filters": [
+    {
+      "name": "template_filter_by_region",
+      "schema": "silver",
+      "table": "{catalog}.silver.sample_data_clean",
+      "filter_columns": [
+        "region"
+      ],
+      "expression": "is_account_group_member('global_data_access') OR region = current_user()"
+    }
+  ]
+}

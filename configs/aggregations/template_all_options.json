@@ -1,0 +1,62 @@
+{
+  "source_tables": {
+    "orders": "{catalog}.{silver_schema}.orders_clean",
+    "customers": "{catalog}.{silver_schema}.customers_clean"
+  },
+  "target_table": "gold_customer_sales_mart",
+  "description": "Comprehensive reference template demonstrating all possible LakeForge Gold aggregation and mart options.",
+  "group_by": [
+    "c.customer_id",
+    "c.customer_name",
+    "c.region",
+    "YEAR(o.transaction_timestamp)",
+    "MONTH(o.transaction_timestamp)"
+  ],
+  "aggregations": [
+    {
+      "name": "total_revenue",
+      "expression": "ROUND(SUM(o.transaction_amount), 2)"
+    },
+    {
+      "name": "total_orders",
+      "expression": "COUNT(o.record_id)"
+    },
+    {
+      "name": "avg_order_value",
+      "expression": "ROUND(AVG(o.transaction_amount), 2)"
+    },
+    {
+      "name": "max_order_amount",
+      "expression": "MAX(o.transaction_amount)"
+    },
+    {
+      "name": "min_order_amount",
+      "expression": "MIN(o.transaction_amount)"
+    },
+    {
+      "name": "high_value_order_count",
+      "expression": "SUM(CASE WHEN o.is_high_value = true THEN 1 ELSE 0 END)"
+    },
+    {
+      "name": "first_transaction_time",
+      "expression": "MIN(o.transaction_timestamp)"
+    },
+    {
+      "name": "last_transaction_time",
+      "expression": "MAX(o.transaction_timestamp)"
+    }
+  ],
+  "join_logic": "orders o INNER JOIN customers c ON o.customer_id = c.customer_id",
+  "filter_condition": "o.transaction_amount > 0 AND c.customer_id IS NOT NULL",
+  "having_condition": "COUNT(o.record_id) >= 1",
+  "merge_strategy": "upsert",
+  "business_key": [
+    "customer_id",
+    "order_year",
+    "order_month"
+  ],
+  "order_by": [
+    "total_revenue DESC",
+    "customer_id ASC"
+  ]
+}

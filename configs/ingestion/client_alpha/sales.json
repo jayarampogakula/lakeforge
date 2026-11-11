@@ -1,4 +1,18 @@
 {
+  "sales": {
+    "source_type": "file",
+    "file_format": "csv",
+    "file_path": "/Volumes/lakeforge_client_alpha_dev/raw_files/landing/sales.csv",
+    "target_catalog": "lakeforge_client_alpha_dev",
+    "target_schema": "bronze",
+    "target_table": "sales",
+    "load_type": "batch",
+    "merge_strategy": "append",
+    "options": {
+      "header": "true",
+      "inferSchema": "true"
+    }
+  },
   "salesin": {
     "source_type": "csv",
     "storage_account": "lakehouse",

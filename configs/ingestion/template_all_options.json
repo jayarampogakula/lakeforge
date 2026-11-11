@@ -1,0 +1,56 @@
+{
+  "template_all_options": {
+    "source_name": "template_all_options",
+    "description": "Comprehensive reference template demonstrating all possible LakeForge ingestion configuration options.",
+    "source_type": "csv",
+    "source_path": "/Volumes/{catalog}/{schema}/landing/sample_data.csv",
+    "storage_account": "lakeforgeadlsgen2",
+    "file_format": "csv",
+    "target_catalog": "{catalog}",
+    "target_schema": "bronze",
+    "target_table": "raw_sample_data",
+    "load_type": "batch",
+    "merge_strategy": "append",
+    "business_key": [
+      "record_id",
+      "tenant_id"
+    ],
+    "incremental": true,
+    "incremental_log_table": "{catalog}.monitoring.ingested_files",
+    "watermark_column": "updated_at",
+    "header": true,
+    "delimiter": ",",
+    "encoding": "utf-8",
+    "sheet_name": "Sheet1",
+    "header_row": 1,
+    "sanitize_column_names": true,
+    "infer_schema": true,
+    "schema_path": "configs/schemas/sample_schema.json",
+    "schema": "record_id STRING, tenant_id STRING, transaction_amount DOUBLE, event_timestamp TIMESTAMP, status STRING",
+    "schema_evolution": "allow",
+    "silver_schema": "silver",
+    "add_audit_columns": true,
+    "partition_by": [
+      "ingestion_date"
+    ],
+    "client_id": "client_alpha",
+    "tags": {
+      "environment": "production",
+      "data_classification": "confidential",
+      "data_owner": "data_engineering_team",
+      "sla_hours": "4"
+    },
+    "options": {
+      "multiLine": "true",
+      "quote": "\"",
+      "escape": "\\",
+      "dateFormat": "yyyy-MM-dd",
+      "timestampFormat": "yyyy-MM-dd'T'HH:mm:ss.SSSXXX",
+      "badRecordsPath": "/Volumes/{catalog}/{schema}/corrupt_records/"
+    },
+    "reader_options": {
+      "maxFilesPerTrigger": "1000",
+      "cleanSource": "archive"
+    }
+  }
+}

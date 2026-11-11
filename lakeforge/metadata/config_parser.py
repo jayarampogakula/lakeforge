@@ -603,13 +603,13 @@ class ConfigParser:
 
         try:
             ing_config = ConfigParser.get_ingestion_config(config_dir_or_file, source_name, environment, client_id)
-            target_tbl = ing_config.target_table
-            dq_catalog = ing_config.target_catalog
-            dq_schema = ing_config.target_schema
+            target_tbl = ing_config.target_table or source_name
+            dq_catalog = ing_config.target_catalog or env_config.get("catalog", "lakehouse")
+            dq_schema = ing_config.target_schema or env_config.get("bronze_schema", "bronze")
         except Exception:
             target_tbl = source_name
-            dq_catalog = env_config["catalog"]
-            dq_schema = env_config["bronze_schema"]
+            dq_catalog = env_config.get("catalog", "lakehouse")
+            dq_schema = env_config.get("bronze_schema", "bronze")
 
         path = Path(config_dir_or_file)
         rules_list = None

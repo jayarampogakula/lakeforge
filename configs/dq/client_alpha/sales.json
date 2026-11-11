@@ -1,5 +1,6 @@
 {
   "source_name": "sales",
+  "table_name": "sales",
   "rules": [
     {
       "rule_name": "sale_id_not_null",

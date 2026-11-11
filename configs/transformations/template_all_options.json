@@ -1,0 +1,95 @@
+{
+  "source_table": "raw_sample_data",
+  "target_table": "sample_data_clean",
+  "description": "Comprehensive reference template demonstrating all possible LakeForge Silver transformation options.",
+  "scd_type": 2,
+  "business_keys": [
+    "record_id"
+  ],
+  "timestamp_column": "updated_at",
+  "schema": "record_id STRING, tenant_id STRING, customer_name STRING, contact_email STRING, transaction_amount DOUBLE, region STRING, event_timestamp TIMESTAMP, is_high_value BOOLEAN",
+  "deduplication": {
+    "key_columns": [
+      "record_id"
+    ],
+    "order_column": "event_timestamp",
+    "order_desc": true,
+    "strategy": "keep_latest"
+  },
+  "columns": {
+    "record_id": "trim(record_id)",
+    "customer_name": "initcap(trim(customer_name))",
+    "contact_email": "lower(trim(contact_email))",
+    "region": "upper(coalesce(region, 'GLOBAL'))",
+    "transaction_amount": "cast(transaction_amount as double)"
+  },
+  "transformations": [
+    {
+      "step_name": "step_1_cast_datatypes",
+      "type": "cast",
+      "column": "transaction_amount",
+      "target_type": "double"
+    },
+    {
+      "step_name": "step_2_standardize_strings",
+      "type": "standardize",
+      "column": "contact_email",
+      "operation": "lowercase"
+    },
+    {
+      "step_name": "step_3_derive_business_indicators",
+      "type": "derived_column",
+      "name": "is_high_value",
+      "expression": "CASE WHEN transaction_amount >= 1000.0 THEN true ELSE false END"
+    },
+    {
+      "step_name": "step_4_filter_corrupt_records",
+      "type": "filter",
+      "condition": "record_id IS NOT NULL AND transaction_amount > 0"
+    },
+    {
+      "step_name": "step_5_drop_obsolete_columns",
+      "type": "drop",
+      "columns": [
+        "temp_raw_data",
+        "legacy_tracking_code"
+      ]
+    },
+    {
+      "step_name": "step_6_rename_column_headers",
+      "type": "rename",
+      "mapping": {
+        "event_timestamp": "transaction_timestamp",
+        "contact_email": "primary_email"
+      }
+    },
+    {
+      "step_name": "step_7_select_and_cast_projection",
+      "type": "select_and_cast",
+      "columns": {
+        "record_id": "string",
+        "tenant_id": "string",
+        "customer_name": "string",
+        "primary_email": "string",
+        "transaction_amount": "double",
+        "region": "string",
+        "transaction_timestamp": "timestamp",
+        "is_high_value": "boolean"
+      }
+    },
+    {
+      "step_name": "step_8_deduplicate_latest_version",
+      "type": "deduplicate",
+      "columns": [
+        "record_id"
+      ],
+      "strategy": "keep_latest",
+      "order_by": "transaction_timestamp"
+    },
+    {
+      "step_name": "step_9_enforce_target_schema",
+      "type": "enforce_schema",
+      "schema": "record_id STRING, tenant_id STRING, customer_name STRING, primary_email STRING, transaction_amount DOUBLE, region STRING, transaction_timestamp TIMESTAMP, is_high_value BOOLEAN"
+    }
+  ]
+}
