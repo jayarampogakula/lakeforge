@@ -74,8 +74,19 @@ def validate_all_configs(
     # 2. Ingestion
     ingest_dirs = []
     if path.is_dir():
-        if client_id and (path / "clients" / client_id / "ingestion").is_dir():
-            ingest_dirs.append((f"clients/{client_id}/ingestion", path / "clients" / client_id / "ingestion", client_id))
+        if client_id:
+            if (path / "ingestion" / client_id).is_dir():
+                ingest_dirs.append((f"ingestion/{client_id}", path / "ingestion" / client_id, client_id))
+            elif (path / "clients" / client_id / "ingestion").is_dir():
+                ingest_dirs.append((f"clients/{client_id}/ingestion", path / "clients" / client_id / "ingestion", client_id))
+        else:
+            if (path / "ingestion").is_dir():
+                for sub in sorted(p for p in (path / "ingestion").iterdir() if p.is_dir()):
+                    ingest_dirs.append((f"ingestion/{sub.name}", sub, sub.name))
+            if (path / "clients").is_dir():
+                for sub in sorted(p for p in (path / "clients").iterdir() if p.is_dir()):
+                    if (sub / "ingestion").is_dir():
+                        ingest_dirs.append((f"clients/{sub.name}/ingestion", sub / "ingestion", sub.name))
         if (path / "ingestion").is_dir():
             ingest_dirs.append(("ingestion", path / "ingestion", None))
 
@@ -83,6 +94,8 @@ def validate_all_configs(
         for f in idir.glob("*.json"):
             try:
                 data = json.loads(f.read_text(encoding="utf-8"))
+                if not data:
+                    continue  # Skip empty/neutralized stub files
                 sources = data if (isinstance(data, dict) and not any(k in data for k in ["source_type", "file_path", "bronze_table"])) else {f.stem: data}
                 for src_name, src_spec in sources.items():
                     try:
@@ -98,14 +111,28 @@ def validate_all_configs(
     # 3. Data Quality
     dq_dirs = []
     if path.is_dir():
-        if client_id and (path / "clients" / client_id / "dq").is_dir():
-            dq_dirs.append((f"clients/{client_id}/dq", path / "clients" / client_id / "dq", client_id))
+        if client_id:
+            if (path / "dq" / client_id).is_dir():
+                dq_dirs.append((f"dq/{client_id}", path / "dq" / client_id, client_id))
+            elif (path / "clients" / client_id / "dq").is_dir():
+                dq_dirs.append((f"clients/{client_id}/dq", path / "clients" / client_id / "dq", client_id))
+        else:
+            if (path / "dq").is_dir():
+                for sub in sorted(p for p in (path / "dq").iterdir() if p.is_dir()):
+                    dq_dirs.append((f"dq/{sub.name}", sub, sub.name))
+            if (path / "clients").is_dir():
+                for sub in sorted(p for p in (path / "clients").iterdir() if p.is_dir()):
+                    if (sub / "dq").is_dir():
+                        dq_dirs.append((f"clients/{sub.name}/dq", sub / "dq", sub.name))
         if (path / "dq").is_dir():
             dq_dirs.append(("dq", path / "dq", None))
 
     for cat_label, ddir, cid in dq_dirs:
         for f in ddir.glob("*.json"):
             try:
+                data = json.loads(f.read_text(encoding="utf-8"))
+                if not data:
+                    continue  # Skip empty/neutralized stub files
                 dq_cfg = ConfigParser.get_dq_config(str(path), f.stem, environment, client_id=cid)
                 errs = ConfigParser.validate_dq_config(dq_cfg)
                 item_id = f"[{cat_label}] {f.name}" if cid else f.name
@@ -116,8 +143,19 @@ def validate_all_configs(
     # 4. Silver Transformations
     trans_dirs = []
     if path.is_dir():
-        if client_id and (path / "clients" / client_id / "transformations").is_dir():
-            trans_dirs.append((f"clients/{client_id}/transformations", path / "clients" / client_id / "transformations"))
+        if client_id:
+            if (path / "transformations" / client_id).is_dir():
+                trans_dirs.append((f"transformations/{client_id}", path / "transformations" / client_id))
+            elif (path / "clients" / client_id / "transformations").is_dir():
+                trans_dirs.append((f"clients/{client_id}/transformations", path / "clients" / client_id / "transformations"))
+        else:
+            if (path / "transformations").is_dir():
+                for sub in sorted(p for p in (path / "transformations").iterdir() if p.is_dir()):
+                    trans_dirs.append((f"transformations/{sub.name}", sub))
+            if (path / "clients").is_dir():
+                for sub in sorted(p for p in (path / "clients").iterdir() if p.is_dir()):
+                    if (sub / "transformations").is_dir():
+                        trans_dirs.append((f"clients/{sub.name}/transformations", sub / "transformations"))
         if (path / "transformations").is_dir():
             trans_dirs.append(("transformations", path / "transformations"))
 
@@ -126,6 +164,8 @@ def validate_all_configs(
             errs = []
             try:
                 data = json.loads(f.read_text(encoding="utf-8"))
+                if not data:
+                    continue  # Skip empty/neutralized stub files
                 if not data.get("source_table"):
                     errs.append("Missing 'source_table'")
                 transformations = data.get("transformations")
@@ -139,7 +179,7 @@ def validate_all_configs(
                     for idx, t in enumerate(transformations):
                         if not isinstance(t, dict) or "type" not in t:
                             errs.append(f"Step {idx}: missing 'type'")
-                item_id = f"[{cat_label}] {f.name}" if "clients" in cat_label else f.name
+                item_id = f"[{cat_label}] {f.name}" if ("clients" in cat_label or "/" in cat_label) else f.name
                 record("transformations", item_id, errs)
             except Exception as e:
                 record("transformations", f.name, [f"Invalid JSON: {e}"])
@@ -151,6 +191,8 @@ def validate_all_configs(
             errs = []
             try:
                 data = json.loads(f.read_text(encoding="utf-8"))
+                if not data:
+                    continue  # Skip empty/neutralized stub files
                 if not data.get("source_tables"):
                     errs.append("Missing 'source_tables'")
                 if not data.get("aggregations"):

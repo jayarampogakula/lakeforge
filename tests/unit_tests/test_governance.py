@@ -3,6 +3,7 @@ Unit tests for LakeForge Governance Engine and Unity Catalog access control reco
 """
 import pytest
 from pathlib import Path
+from lakeforge.metadata.config_parser import ConfigParser
 from lakeforge.governance import (
     GovernanceEngine,
     create_governance_engine,
@@ -40,11 +41,12 @@ def test_governance_engine_load_and_dry_run():
     assert result["failed"] == 0
 
     # Ensure catalog, schema, table, and view grants exist
+    dev_catalog = ConfigParser.get_environment_config("configs", "dev")["catalog"]
     stmts_text = "\n".join(result["statements"])
-    assert "ON CATALOG lakeforge_dev" in stmts_text
-    assert "ON SCHEMA lakeforge_dev.gold" in stmts_text
-    assert "ON TABLE lakeforge_dev.silver.customers_clean" in stmts_text
-    assert "ON VIEW lakeforge_dev.gold.v_high_value_transactions" in stmts_text
+    assert f"ON CATALOG {dev_catalog}" in stmts_text
+    assert f"ON SCHEMA {dev_catalog}.gold" in stmts_text
+    assert f"ON TABLE {dev_catalog}.silver.customers_clean" in stmts_text
+    assert f"ON VIEW {dev_catalog}.gold.v_high_value_transactions" in stmts_text
 
 
 def test_client_scoped_governance():
