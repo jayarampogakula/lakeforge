@@ -1,0 +1,19 @@
+# MANDATORY first-deployment job: provisions this stage's catalogs, schemas
+# and volumes (client_id=all covers the env catalog AND every client catalog)
+# before any ETL / views job runs in a fresh environment. Idempotent - safe
+# to re-run. The dab_deploy workflows expose a 'run_setup' option that runs
+# this job right after the first deploy of a bundle to a stage.
+resources:
+  jobs:
+    environment_setup:
+      name: lakeforge-setup-${bundle.target}
+      tasks:
+        - task_key: provision_environment
+          notebook_task:
+            notebook_path: ../../../pipelines/SETUP_Environment_Provisioning.ipynb
+            base_parameters:
+              config_dir: ""
+              environment: ${bundle.target}
+              stage: ${bundle.target}
+              client_id: "all"
+              dry_run: "false"

@@ -22,6 +22,10 @@ parameters:
     displayName: 'Target stage (any stage in configs/environments/env_settings.json)'
     type: string
     default: dev
+  - name: run_setup
+    displayName: 'Run environment_setup job after deploy (tick for the FIRST deployment of this bundle to a stage - provisions catalogs/schemas/volumes)'
+    type: boolean
+    default: false
 
 variables:
   - group: databricks-auth
@@ -97,6 +101,18 @@ steps:
       set -e
       databricks bundle deploy --target ${{ parameters.stage }}
     displayName: 'Deploy bundle'
+    workingDirectory: $(Build.SourcesDirectory)/deployments/${{ parameters.client_id }}
+    env:
+      DATABRICKS_HOST: $(DATABRICKS_HOST)
+      DATABRICKS_TOKEN: $(DATABRICKS_TOKEN)
+
+  # First-deployment step: provisions the stage's catalogs/schemas/volumes
+  # (idempotent). Requires the environment_setup job resource in the bundle.
+  - script: |
+      set -e
+      databricks bundle run environment_setup --target ${{ parameters.stage }}
+    condition: eq('${{ parameters.run_setup }}', 'True')
+    displayName: 'Run environment setup job (first deployment to this stage)'
     workingDirectory: $(Build.SourcesDirectory)/deployments/${{ parameters.client_id }}
     env:
       DATABRICKS_HOST: $(DATABRICKS_HOST)

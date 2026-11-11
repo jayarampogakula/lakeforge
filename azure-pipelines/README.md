@@ -60,6 +60,28 @@ A separate account also means a **separate Unity Catalog metastore**: run the bu
 `setup_environment_provisioning` task once in that workspace so its catalogs/schemas
 get created there.
 
+## First deployment to a new environment (mandatory runbook)
+
+The **FIRST** deploy of a bundle to a stage (fresh environment, e.g. the separate-account
+`test`) must provision Unity Catalog before any ETL/views job can run:
+
+1. Run the **dab_deploy** pipeline with `run_setup` ticked — after deploying, it runs the
+   bundle's `environment_setup` job (`databricks bundle run environment_setup --target <stage>`),
+   which creates the stage's catalogs, schemas and `raw_files.landing` volumes —
+   `client_id=all` covers the env catalog **and every client catalog**. It is idempotent.
+2. Then run the client's ETL job once (its first task re-checks provisioning, then loads
+   Bronze → Silver → Gold, creates views, and applies governance grants).
+
+What is covered automatically (no extra jobs needed):
+
+* **Catalogs/schemas/volumes** — `environment_setup` job (and the ETL job's first task).
+* **Governance grants** — `governance_security_task` runs at the end of every ETL job.
+* **Views** — created by the ETL/views jobs from `configs/views/`.
+
+Not in the bundles (manual/separate): the **DQ BRICKS** job is still a UI-created job
+that exists only in the dev workspace — if you need it in a new environment, give it
+`client_id` + `release` tags and run the DAB export pipeline, or recreate it there.
+
 ## The Four Pipelines
 
 | Pipeline | Trigger | Purpose |

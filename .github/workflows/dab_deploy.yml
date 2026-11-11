@@ -16,6 +16,11 @@ on:
         required: true
         default: 'dev'
         type: string
+      run_setup:
+        description: 'Run the environment_setup job after deploy (tick on the FIRST deployment of this bundle to a stage - provisions catalogs/schemas/volumes)'
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: read
@@ -85,3 +90,11 @@ jobs:
         working-directory: deployments/${{ inputs.client_id }}
         run: |
           databricks bundle deploy --target "${{ inputs.stage }}"
+
+      # First-deployment step: provisions the stage's catalogs/schemas/volumes
+      # (idempotent). Requires the environment_setup job resource in the bundle.
+      - name: Run environment setup job (first deployment to this stage)
+        if: inputs.run_setup
+        working-directory: deployments/${{ inputs.client_id }}
+        run: |
+          databricks bundle run environment_setup --target "${{ inputs.stage }}"

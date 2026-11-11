@@ -76,6 +76,11 @@ steps:
         echo "Creating bundle definition for client ${{ parameters.client_id }} from template"
         sed -e "s/__CLIENT_ID__/${{ parameters.client_id }}/g" \
             deployments/_template/databricks.yml > "$BUNDLE_DIR/databricks.yml"
+        # Seed the client's resources with the template's shared job
+        # definitions (the mandatory environment_setup job) when present.
+        if ls deployments/_template/resources/*.yml >/dev/null 2>&1; then
+          cp deployments/_template/resources/*.yml "$BUNDLE_DIR/resources/"
+        fi
       fi
     displayName: 'Prepare client bundle directory'
     env:
