@@ -32,6 +32,11 @@ def test_schema_evolution_strict_mode(spark, tmp_path):
     catalog = ""
     schema = "default"
 
+    try:
+        spark.sql(f"DROP TABLE IF EXISTS default.{table_name}")
+    except Exception:
+        pass
+
     writer = create_bronze_writer(spark)
 
     # Initial write with 2 columns
@@ -74,6 +79,11 @@ def test_schema_evolution_allow_mode(spark, tmp_path):
     catalog = ""
     schema = "default"
 
+    try:
+        spark.sql(f"DROP TABLE IF EXISTS default.{table_name}")
+    except Exception:
+        pass
+
     writer = create_bronze_writer(spark)
 
     # Initial write
@@ -113,6 +123,12 @@ def test_schema_evolution_quarantine_mode(spark, tmp_path):
     table_name = "test_bronze_quarantine_drift"
     catalog = ""
     schema = "default"
+
+    try:
+        spark.sql(f"DROP TABLE IF EXISTS default.{table_name}")
+        spark.sql(f"DROP TABLE IF EXISTS default.{table_name}_quarantine")
+    except Exception:
+        pass
 
     writer = create_bronze_writer(spark)
 

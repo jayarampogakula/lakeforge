@@ -174,7 +174,16 @@ class BronzeWriter:
                         df.write.format("delta").mode("append").option("mergeSchema", "true").saveAsTable(quarantine_table)
                         metrics["quarantine_table"] = quarantine_table
                     except Exception:
-                        df.write.format("delta").mode("append").option("mergeSchema", "true").saveAsTable(f"{target_table}_quarantine")
+                        try:
+                            df.write.format("delta").mode("append").option("mergeSchema", "true").saveAsTable(f"{target_table}_quarantine")
+                            metrics["quarantine_table"] = f"{target_table}_quarantine"
+                        except Exception:
+                            try:
+                                self.spark.sql(f"CREATE TABLE IF NOT EXISTS {quarantine_table} USING delta")
+                                df.write.format("delta").mode("append").option("mergeSchema", "true").insertInto(quarantine_table)
+                                metrics["quarantine_table"] = quarantine_table
+                            except Exception:
+                                pass
                     matching_cols = [c for c in df.columns if c in existing_set]
                     df = df.select(*matching_cols)
                 elif schema_evolution == "allow":
@@ -197,7 +206,20 @@ class BronzeWriter:
                 if schema_evolution == "allow":
                     writer = writer.option("mergeSchema", "true")
                 
-                writer.saveAsTable(full_table_name)
+                try:
+                    writer.saveAsTable(full_table_name)
+                except Exception as save_err:
+                    if "EXTERNAL_METADATA_UNSUPPORTED" in str(save_err):
+                        try:
+                            self.spark.sql(f"CREATE TABLE IF NOT EXISTS {full_table_name} USING delta")
+                        except Exception:
+                            pass
+                        ins_writer = df.write.format("delta").mode(mode)
+                        if schema_evolution == "allow":
+                            ins_writer = ins_writer.option("mergeSchema", "true")
+                        ins_writer.insertInto(full_table_name)
+                    else:
+                        raise
             
             # Optimize if requested
             if optimize_after_write:

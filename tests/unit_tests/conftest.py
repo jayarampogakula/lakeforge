@@ -25,6 +25,8 @@ def spark():
         .config("spark.sql.shuffle.partitions", "1") \
         .config("spark.default.parallelism", "1") \
         .config("spark.ui.enabled", "false") \
+        .config("spark.sql.extensions", "io.delta.sql.DeltaSparkSessionExtension") \
+        .config("spark.sql.catalog.spark_catalog", "org.apache.spark.sql.delta.catalog.DeltaCatalog") \
         .config("spark.sql.warehouse.dir", "target/spark-warehouse")
 
     try:
