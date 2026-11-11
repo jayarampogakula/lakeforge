@@ -21,10 +21,8 @@ its top-level keys are the stages, its values hold each stage's catalogs/schemas
 2. Run `lakeforge sync-stages` — regenerates every bundle's targets (`--check` = dry run).
 3. Commit. CI, the CLI, and the DAB workflows pick the new stages up automatically —
    no workflow YAML edits needed. The push-to-`main` auto-promotion targets the first
-   non-dev stage in the registry.
-
-   Known manual spot: the pipeline notebooks' `environment` widget dropdowns are still
-   hardcoded (`pipelines/*.ipynb`) — update those choices too when a stage is renamed.
+   non-dev stage in the registry. The pipeline notebooks' `environment` dropdowns
+   also read their choices from the registry automatically.
 
 ## Deploying a stage to a separate account
 

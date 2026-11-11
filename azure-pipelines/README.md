@@ -22,10 +22,8 @@ its top-level keys are the stages, its values hold each stage's catalogs/schemas
 1. Edit `configs/environments/env_settings.json` (rename/remove/add keys and their settings).
 2. Run `lakeforge sync-stages` — regenerates every bundle's targets (`--check` = dry run).
 3. Commit. Pipelines, the CLI, and the DAB workflows pick the new stages up automatically —
-   no pipeline YAML edits needed.
-
-   Known manual spot: the pipeline notebooks' `environment` widget dropdowns are still
-   hardcoded (`pipelines/*.ipynb`) — update those choices too when a stage is renamed.
+   no pipeline YAML edits needed. The pipeline notebooks' `environment` dropdowns
+   also read their choices from the registry automatically.
 
 ## Deploying a stage to a separate account
 
