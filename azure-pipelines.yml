@@ -58,7 +58,7 @@ variables:
 
 stages:
   - stage: BuildAndTest
-    displayName: "Build & Unit Test Verification"
+    displayName: "1. Build & Unit Test Verification"
     jobs:
       - job: TestJob
         displayName: "Run Unit Tests & Config Validation"
@@ -78,15 +78,40 @@ stages:
 
           - script: |
               python -m pytest tests/unit_tests/ -v
-            displayName: "Execute PyTest Suite"
+            displayName: "Execute PyTest Unit Tests"
 
           - script: |
               lakeforge validate configs --env dev
             displayName: "Validate Metadata Configurations"
 
-  - stage: DeployStage
-    displayName: "Deploy to Stage: ${{ parameters.stage }}"
+  - stage: IntegrationTest
+    displayName: "2. End-to-End Integration Tests"
     dependsOn: BuildAndTest
+    condition: succeeded()
+    jobs:
+      - job: IntegrationJob
+        displayName: "Execute Integration Test Suite"
+        pool:
+          vmImage: "ubuntu-latest"
+        steps:
+          - task: UsePythonVersion@0
+            displayName: "Use Python $(PYTHON_VERSION)"
+            inputs:
+              versionSpec: $(PYTHON_VERSION)
+              addToPath: true
+
+          - script: |
+              python -m pip install --upgrade pip
+              pip install -e ".[dev]"
+            displayName: "Install Package"
+
+          - script: |
+              python -m pytest tests/integration_tests/ -v
+            displayName: "Execute Integration Test Suite"
+
+  - stage: DeployStage
+    displayName: "3. Deploy to Stage: ${{ parameters.stage }}"
+    dependsOn: [BuildAndTest, IntegrationTest]
     condition: succeeded()
     jobs:
       - deployment: DeployJob

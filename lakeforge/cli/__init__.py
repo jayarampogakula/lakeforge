@@ -49,6 +49,13 @@ def main(argv=None):
     deploy_parser.add_argument("--target-workspace", default=None, help="Target Databricks workspace path")
     deploy_parser.add_argument("--dry-run", action="store_true", help="Dry run mode (preview without applying)")
 
+    # pr-review
+    pr_parser = subparsers.add_parser("pr-review", help="Automated Pull Request Review & Duplicate Function Detection")
+    pr_parser.add_argument("--base-ref", default="origin/main", help="Base git ref to compare against (default: origin/main)")
+    pr_parser.add_argument("--repo-root", default=".", help="Root of repository")
+    pr_parser.add_argument("--post-comment", action="store_true", help="Post comment to GitHub PR")
+    pr_parser.add_argument("--fail-on-duplicate", action="store_true", help="Exit code 1 if duplicates found")
+
     args = parser.parse_args(argv)
 
     if args.subcommand == "validate":
@@ -85,6 +92,19 @@ def main(argv=None):
         if args.dry_run:
             dep_args.append("--dry-run")
         deploy_main(dep_args)
+    elif args.subcommand == "pr-review":
+        from .pr_reviewer import main as pr_main
+        sys_args = ["--base-ref", args.base_ref, "--repo-root", args.repo_root]
+        if args.post_comment:
+            sys_args.append("--post-comment")
+        if args.fail_on_duplicate:
+            sys_args.append("--fail-on-duplicate")
+        old_argv = sys.argv
+        try:
+            sys.argv = ["lakeforge pr-review"] + sys_args
+            pr_main()
+        finally:
+            sys.argv = old_argv
     else:
         parser.print_help()
 
