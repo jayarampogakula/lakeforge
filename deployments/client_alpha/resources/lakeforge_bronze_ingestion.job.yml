@@ -1,0 +1,33 @@
+resources:
+  jobs:
+    lakeforge_bronze_ingestion:
+      name: LakeForge Bronze Ingestion
+      tasks:
+        - task_key: bronze_ingestion
+          disabled: false
+          email_notifications: {}
+          notebook_task:
+            base_parameters:
+              client_id: ""
+              config_dir: ""
+              create_views: ""
+              environment: dev
+              load_type: ""
+              pipeline_name: ""
+              source_system: ""
+            notebook_path: ../src/Bronze_Generic_Pipeline.ipynb
+            source: WORKSPACE
+          run_if: ALL_SUCCESS
+          timeout_seconds: 0
+          webhook_notifications: {}
+      email_notifications:
+        no_alert_for_skipped_runs: false
+      max_concurrent_runs: 1
+      performance_target: PERFORMANCE_OPTIMIZED
+      queue:
+        enabled: true
+      tags:
+        "client_id": "client_alpha"
+        "release": "release"
+      timeout_seconds: 0
+      webhook_notifications: {}
