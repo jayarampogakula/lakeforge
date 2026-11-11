@@ -53,6 +53,7 @@ targets:
       stage: "staging"
 
   prod:
+    # Production mode: locked bundle state, no uncommitted changes permitted
     mode: production
     workspace:
       root_path: /Workspace/Shared/lakeforge___CLIENT_ID__/prod

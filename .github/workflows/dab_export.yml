@@ -32,9 +32,18 @@ jobs:
       - name: Install Databricks CLI
         uses: databricks/setup-cli@main
 
+      - name: Verify Databricks credentials
+        run: |
+          if [ -z "$DATABRICKS_HOST" ] || [ -z "$DATABRICKS_TOKEN" ]; then
+            echo "::error::Missing repo secrets DATABRICKS_HOST / DATABRICKS_TOKEN. Add them under Settings > Secrets and variables > Actions, then re-run this workflow."
+            exit 1
+          fi
+          echo "Authenticated as: $(databricks current-user me --output json | jq -r .userName)"
+
       - name: Find job by client_id and release tags
         id: find-job
         run: |
+          set -eo pipefail
           JOB_IDS=$(databricks jobs list --output json \
             | jq -c '[.[] | select(.settings.tags.client_id == "${{ inputs.client_id }}" and .settings.tags.release == "${{ inputs.release }}") | .job_id]')
           if [ -z "$JOB_IDS" ] || [ "$JOB_IDS" = "[]" ]; then

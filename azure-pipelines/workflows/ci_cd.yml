@@ -20,14 +20,9 @@ pr:
 
 parameters:
   - name: stage
-    displayName: "Deployment Stage / Environment"
+    displayName: "Deployment Stage / Environment (any stage in configs/environments/env_settings.json)"
     type: string
     default: dev
-    values:
-      - dev
-      - test
-      - staging
-      - prod
 
   - name: client_id
     displayName: "Tenant / Client ID (Optional Scoping)"
@@ -137,13 +132,20 @@ stages:
                   displayName: "Install LakeForge CLI"
 
                 - script: |
+                    if ! jq -e --arg s "${{ parameters.stage }}" 'has($s)' configs/environments/env_settings.json > /dev/null; then
+                      echo "##vso[task.logissue type=error]Stage '${{ parameters.stage }}' is not defined in the stage registry (configs/environments/env_settings.json). Available stages: $(jq -r 'keys | join(", ")' configs/environments/env_settings.json)"
+                      exit 1
+                    fi
+                  displayName: "Validate Stage Against Registry"
+
+                - script: |
                     BRANCH_NAME="$(Build.SourceBranchName)"
                     TARGET_STAGE="${{ parameters.stage }}"
                     if [ "$TARGET_STAGE" != "dev" ] && [ "$BRANCH_NAME" != "main" ]; then
                       echo "##vso[task.logissue type=error]Stage '$TARGET_STAGE' may only be deployed from 'main' (current branch: '$BRANCH_NAME'). Feature/dev-branch runs deploy to dev only."
                       exit 1
                     fi
-                  displayName: "Enforce Branch Policy (test/staging/prod deploy from main only)"
+                  displayName: "Enforce Branch Policy (non-dev stages deploy from main only)"
 
                 - script: |
                     CLIENT_ARG=""

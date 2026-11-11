@@ -1,6 +1,7 @@
 # Manual DAB deploy (Azure DevOps version of .github/workflows/dab_deploy.yml)
 # Run from: Pipelines > Run pipeline, choose your branch, enter client_id + stage.
-# Branch policy: test/staging/prod deploy from 'main' ONLY; 'dev' from any branch.
+# Branch policy: non-dev stages deploy from 'main' ONLY; 'dev' from any branch.
+# Stages are defined centrally in configs/environments/env_settings.json.
 #
 # Prerequisites: variable group 'databricks-auth' (Pipelines > Library) containing
 #   DATABRICKS_HOST  = https://dbc-49ef00ea-2dda.cloud.databricks.com
@@ -18,14 +19,9 @@ parameters:
     type: string
     default: client_alpha
   - name: stage
-    displayName: 'Target stage'
+    displayName: 'Target stage (any stage in configs/environments/env_settings.json)'
     type: string
     default: dev
-    values:
-      - dev
-      - test
-      - staging
-      - prod
 
 variables:
   - group: databricks-auth
@@ -41,6 +37,13 @@ steps:
       curl -fsSL https://raw.githubusercontent.com/databricks/setup-cli/main/install.sh | sh
       databricks --version
     displayName: 'Install Databricks CLI'
+
+  - script: |
+      if ! jq -e --arg s "${{ parameters.stage }}" 'has($s)' configs/environments/env_settings.json > /dev/null; then
+        echo "##vso[task.logissue type=error]Stage '${{ parameters.stage }}' is not defined in the stage registry (configs/environments/env_settings.json). Available stages: $(jq -r 'keys | join(", ")' configs/environments/env_settings.json)"
+        exit 1
+      fi
+    displayName: 'Validate stage against registry'
 
   - script: |
       if [ "${{ parameters.stage }}" != "dev" ] && [ "$(Build.SourceBranchName)" != "main" ]; then

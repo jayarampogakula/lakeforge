@@ -1,7 +1,7 @@
 """
 LakeForge CLI - Multi-Stage Deployment Manager.
 Deploys LakeForge pipelines, governance access controls, views, and configurations
-based on the target stage (dev, test, staging, prod).
+based on the target stage (stages are defined by the registry in configs/environments/env_settings.json).
 """
 import sys
 import shutil
@@ -14,10 +14,13 @@ from lakeforge.metadata.config_parser import ConfigParser
 from lakeforge.cli.validate_config import validate_all_configs, print_summary
 from lakeforge.governance.governance_engine import GovernanceEngine
 from lakeforge.observability.metrics import PipelineMetricsAuditor, PipelineRunMetric
+from lakeforge.cli.sync_stages import supported_stages
 
 logger = logging.getLogger(__name__)
 
-SUPPORTED_STAGES = ["dev", "test", "staging", "prod"]
+# Derived from the stage registry (configs/environments/env_settings.json keys).
+# Falls back to the classic set only when the registry cannot be located.
+SUPPORTED_STAGES = supported_stages()
 
 
 def deploy_stage(
@@ -32,7 +35,7 @@ def deploy_stage(
     Execute stage-based deployment for LakeForge.
 
     Args:
-        stage: Target deployment stage (dev, test, staging, prod)
+        stage: Target deployment stage (any key of configs/environments/env_settings.json)
         config_dir: Configuration directory path
         client_id: Optional tenant/client identifier
         component: Target component ('all', 'pipelines', 'views', 'governance', 'package')
@@ -43,8 +46,12 @@ def deploy_stage(
         Dict summarizing deployment actions and status
     """
     stage_normalized = stage.strip().lower()
-    if stage_normalized not in SUPPORTED_STAGES:
-        raise ValueError(f"Invalid stage '{stage}'. Supported stages: {', '.join(SUPPORTED_STAGES)}")
+    supported = supported_stages(config_dir)
+    if stage_normalized not in supported:
+        raise ValueError(
+            f"Invalid stage '{stage}'. Supported stages (from configs/environments/env_settings.json): "
+            f"{', '.join(supported)}"
+        )
 
     start_time = datetime.now(timezone.utc).isoformat()
     workspace_path = target_workspace or f"/Workspace/Shared/lakeforge/{stage_normalized}"
@@ -174,8 +181,10 @@ def main(argv=None):
     if argv is None:
         argv = sys.argv[1:]
     import argparse
-    parser = argparse.ArgumentParser(description="Deploy LakeForge to a target stage (dev, test, staging, prod).")
-    parser.add_argument("--stage", "-s", required=True, choices=SUPPORTED_STAGES, help="Target deployment stage")
+    parser = argparse.ArgumentParser(
+        description=f"Deploy LakeForge to a target stage ({', '.join(SUPPORTED_STAGES)})."
+    )
+    parser.add_argument("--stage", "-s", required=True, choices=supported_stages(), help="Target deployment stage")
     parser.add_argument("--client", "-c", default=None, help="Target client/tenant scope (optional)")
     parser.add_argument("--component", default="all", choices=["all", "pipelines", "views", "governance", "package"], help="Component to deploy")
     parser.add_argument("--config-dir", default="configs", help="Path to config directory (default: configs)")

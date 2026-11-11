@@ -41,8 +41,12 @@ def main(argv=None):
     run_parser.add_argument("--dry-run", action="store_true", help="Dry run mode for governance/audit")
 
     # deploy
-    deploy_parser = subparsers.add_parser("deploy", help="Deploy LakeForge to a target stage (dev, test, staging, prod)")
-    deploy_parser.add_argument("--stage", "-s", required=True, choices=["dev", "test", "staging", "prod"], help="Target stage")
+    from .sync_stages import supported_stages
+    deploy_parser = subparsers.add_parser(
+        "deploy",
+        help=f"Deploy LakeForge to a target stage ({', '.join(supported_stages())})",
+    )
+    deploy_parser.add_argument("--stage", "-s", required=True, choices=supported_stages(), help="Target stage")
     deploy_parser.add_argument("--client", "-c", default=None, help="Client ID / Tenant scope (optional)")
     deploy_parser.add_argument("--component", default="all", choices=["all", "pipelines", "views", "governance", "package"], help="Component to deploy")
     deploy_parser.add_argument("--config-dir", default="configs", help="Config directory (default: configs)")
@@ -55,6 +59,14 @@ def main(argv=None):
     pr_parser.add_argument("--repo-root", default=".", help="Root of repository")
     pr_parser.add_argument("--post-comment", action="store_true", help="Post comment to GitHub PR")
     pr_parser.add_argument("--fail-on-duplicate", action="store_true", help="Exit code 1 if duplicates found")
+
+    # sync-stages
+    sync_parser = subparsers.add_parser(
+        "sync-stages",
+        help="Regenerate every bundle's stage targets from the registry (configs/environments/env_settings.json)",
+    )
+    sync_parser.add_argument("--check", action="store_true", help="Dry run: report drift only, change nothing")
+    sync_parser.add_argument("--config-dir", default="configs", help="Config directory (default: configs)")
 
     args = parser.parse_args(argv)
 
@@ -92,6 +104,12 @@ def main(argv=None):
         if args.dry_run:
             dep_args.append("--dry-run")
         deploy_main(dep_args)
+    elif args.subcommand == "sync-stages":
+        from .sync_stages import main as sync_main
+        sync_args = ["--config-dir", args.config_dir]
+        if args.check:
+            sync_args.insert(0, "--check")
+        sync_main(sync_args)
     elif args.subcommand == "pr-review":
         from .pr_reviewer import main as pr_main
         sys_args = ["--base-ref", args.base_ref, "--repo-root", args.repo_root]

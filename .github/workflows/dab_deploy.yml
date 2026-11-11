@@ -1,6 +1,7 @@
 # Manual DAB deploy: deploy deployments/<client_id> to a chosen stage.
-# Branch policy: test/staging/prod may ONLY be deployed from 'main';
+# Branch policy: non-dev stages may ONLY be deployed from 'main';
 # 'dev' may be deployed from any branch (including feature branches).
+# Stages are defined centrally in configs/environments/env_settings.json.
 name: DAB Deploy
 
 on:
@@ -11,15 +12,10 @@ on:
         required: true
         type: string
       stage:
-        description: 'Target stage'
+        description: 'Target stage (any stage defined in configs/environments/env_settings.json)'
         required: true
         default: 'dev'
-        type: choice
-        options:
-          - dev
-          - test
-          - staging
-          - prod
+        type: string
 
 permissions:
   contents: read
@@ -44,6 +40,13 @@ jobs:
 
       - name: Install Databricks CLI
         uses: databricks/setup-cli@main
+
+      - name: Validate stage against registry
+        run: |
+          if ! jq -e --arg s "${{ inputs.stage }}" 'has($s)' configs/environments/env_settings.json > /dev/null; then
+            echo "::error::Stage '${{ inputs.stage }}' is not defined in the stage registry (configs/environments/env_settings.json). Available stages: $(jq -r 'keys | join(", ")' configs/environments/env_settings.json)"
+            exit 1
+          fi
 
       - name: Validate bundle
         working-directory: deployments/${{ inputs.client_id }}

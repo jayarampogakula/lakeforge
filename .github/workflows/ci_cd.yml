@@ -10,15 +10,10 @@ on:
   workflow_dispatch:
     inputs:
       stage:
-        description: 'Target Deployment Stage'
+        description: 'Target Deployment Stage (any stage in configs/environments/env_settings.json)'
         required: true
         default: 'dev'
-        type: choice
-        options:
-          - dev
-          - test
-          - staging
-          - prod
+        type: string
       client_id:
         description: 'Client / Tenant Scope (leave blank for Global)'
         required: false
@@ -68,14 +63,10 @@ jobs:
 
     - name: Validate All Stage Configurations
       run: |
-        echo "Validating dev stage configs..."
-        lakeforge validate configs/ --env dev
-        echo "Validating test stage configs..."
-        lakeforge validate configs/ --env test
-        echo "Validating staging stage configs..."
-        lakeforge validate configs/ --env staging
-        echo "Validating prod stage configs..."
-        lakeforge validate configs/ --env prod
+        for STAGE in $(jq -r 'keys[]' configs/environments/env_settings.json); do
+          echo "Validating $STAGE stage configs..."
+          lakeforge validate configs/ --env "$STAGE"
+        done
 
     - name: Run Unit Tests
       run: |
@@ -136,9 +127,10 @@ jobs:
           COMP_ARG="${{ github.event.inputs.component }}"
           DRY_RUN="${{ github.event.inputs.dry_run }}"
         else
-          # Push builds: main promotes to test; dev/feature/bugfix branches deploy to dev ONLY
+          # Push builds: main promotes to the FIRST non-dev stage in the stage registry
+          # (configs/environments/env_settings.json); dev/feature/bugfix branches deploy to dev ONLY
           if [ "${{ github.ref }}" = "refs/heads/main" ]; then
-            TARGET_STAGE="test"
+            TARGET_STAGE=$(jq -r 'keys[] | select(. != "dev")' configs/environments/env_settings.json | head -1)
           else
             TARGET_STAGE="dev"
           fi
@@ -152,7 +144,14 @@ jobs:
         echo "DRY_RUN=$DRY_RUN" >> $GITHUB_ENV
         echo "Deploying to target stage: $TARGET_STAGE (client: $CLIENT_ARG, component: $COMP_ARG, dry_run: $DRY_RUN)"
 
-    - name: Enforce Branch Policy (test/staging/prod deploy from main only)
+    - name: Validate Stage Against Registry
+      run: |
+        if ! jq -e --arg s "$STAGE" 'has($s)' configs/environments/env_settings.json > /dev/null; then
+          echo "::error::Stage '$STAGE' is not defined in the stage registry (configs/environments/env_settings.json). Available stages: $(jq -r 'keys | join(", ")' configs/environments/env_settings.json)"
+          exit 1
+        fi
+
+    - name: Enforce Branch Policy (non-dev stages deploy from main only)
       if: env.STAGE != 'dev' && github.ref != 'refs/heads/main'
       run: |
         echo "::error::Stage '${{ env.STAGE }}' may only be deployed from branch 'main' (current branch: '${{ github.ref_name }}'). Feature/dev-branch runs deploy to dev only."

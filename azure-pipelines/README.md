@@ -1,8 +1,28 @@
 # CI/CD in Azure DevOps (`azure-pipelines/workflows/`)
 
 Four Azure DevOps pipelines — exact mirrors of the GitHub workflows in `.github/workflows/`.
-All of them enforce the same branch policy: **test/staging/prod deploy from `main` only;
+All of them enforce the same branch policy: **non-dev stages deploy from `main` only;
 `dev` may deploy from any branch.**
+
+## Stage Registry (single source of truth)
+
+Stage names are defined in ONE place: **`configs/environments/env_settings.json`** —
+its top-level keys are the stages, its values hold each stage's catalogs/schemas.
+
+* Pipelines: the `stage` parameter is free text (no dropdown), validated **at runtime**
+  against the registry by a `Validate Stage Against Registry` step (an unknown stage fails
+  immediately with the list of available stages).
+* `lakeforge deploy`: reads its supported stages from the same file.
+* Databricks bundles: the `targets:` blocks of the root bundle, `deployments/_template/`,
+  and every `deployments/<client_id>/` are **generated** from the registry via
+  `lakeforge sync-stages` (or `python -m lakeforge.cli.sync_stages`).
+
+**To add / rename / remove a stage** (e.g. switch to just `dev` + `qa` + `prod`):
+
+1. Edit `configs/environments/env_settings.json` (rename/remove/add keys and their settings).
+2. Run `lakeforge sync-stages` — regenerates every bundle's targets (`--check` = dry run).
+3. Commit. Pipelines, the CLI, and the DAB workflows pick the new stages up automatically —
+   no pipeline YAML edits needed.
 
 ## The Four Pipelines
 

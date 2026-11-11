@@ -1,7 +1,27 @@
 # CI/CD in GitHub (`.github/workflows/`)
 
 Four GitHub Actions workflows — two automated, two manual (DAB-based). All of them enforce the
-same branch policy: **test/staging/prod deploy from `main` only; `dev` may deploy from any branch.**
+same branch policy: **non-dev stages deploy from `main` only; `dev` may deploy from any branch.**
+
+## Stage Registry (single source of truth)
+
+Stage names are defined in ONE place: **`configs/environments/env_settings.json`** —
+its top-level keys are the stages, its values hold each stage's catalogs/schemas.
+
+* Workflows: the `stage` input is free text, validated **at runtime** against the registry
+  (an unknown stage fails immediately with the list of available stages).
+* `lakeforge deploy`: reads its supported stages from the same file.
+* Databricks bundles: the `targets:` blocks of the root bundle, `deployments/_template/`,
+  and every `deployments/<client_id>/` are **generated** from the registry via
+  `lakeforge sync-stages` (or `python -m lakeforge.cli.sync_stages`).
+
+**To add / rename / remove a stage** (e.g. switch to just `dev` + `qa` + `prod`):
+
+1. Edit `configs/environments/env_settings.json` (rename/remove/add keys and their settings).
+2. Run `lakeforge sync-stages` — regenerates every bundle's targets (`--check` = dry run).
+3. Commit. CI, the CLI, and the DAB workflows pick the new stages up automatically —
+   no workflow YAML edits needed. The push-to-`main` auto-promotion targets the first
+   non-dev stage in the registry.
 
 ## The Four Workflows
 

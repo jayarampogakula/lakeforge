@@ -43,6 +43,18 @@ steps:
 
   - script: |
       set -e
+      if [ -z "$DATABRICKS_HOST" ] || [ -z "$DATABRICKS_TOKEN" ]; then
+        echo "##vso[task.logissue type=error]Missing variable group values: create variable group 'databricks-auth' (Pipelines > Library) with DATABRICKS_HOST and secret DATABRICKS_TOKEN, then re-run."
+        exit 1
+      fi
+      echo "Authenticated as: $(databricks current-user me --output json | jq -r .userName)"
+    displayName: 'Verify Databricks credentials'
+    env:
+      DATABRICKS_HOST: $(DATABRICKS_HOST)
+      DATABRICKS_TOKEN: $(DATABRICKS_TOKEN)
+
+  - script: |
+      set -eo pipefail
       JOB_IDS=$(databricks jobs list --output json \
         | jq -c '[.[] | select(.settings.tags.client_id == "${{ parameters.client_id }}" and .settings.tags.release == "${{ parameters.release }}") | .job_id]')
       if [ -z "$JOB_IDS" ] || [ "$JOB_IDS" = "[]" ]; then
