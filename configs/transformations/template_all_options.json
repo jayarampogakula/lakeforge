@@ -1,8 +1,12 @@
 {
   "source_table": "raw_sample_data",
   "target_table": "sample_data_clean",
-  "description": "Comprehensive reference template demonstrating LakeForge Silver transformation options.",
-  "sql_file": "sample_data_clean.sql",
+  "description": "Comprehensive reference template demonstrating LakeForge Silver generic & custom Python/PySpark transformations.",
+  "custom_module": "lakeforge.transformations.custom",
+  "custom_function": "clean_customer_dataframe",
+  "params": {
+    "min_spend": 0.0
+  },
   "merge_strategy": "upsert",
   "business_keys": [
     "record_id"
@@ -18,6 +22,20 @@
     "order_desc": true,
     "strategy": "keep_latest"
   },
+  "custom_columns": [
+    {
+      "column": "contact_email",
+      "target_column": "masked_email",
+      "module": "lakeforge.transformations.custom",
+      "function": "mask_email_column"
+    },
+    {
+      "column": "phone",
+      "target_column": "clean_phone",
+      "module": "lakeforge.transformations.custom",
+      "function": "clean_phone_number"
+    }
+  ],
   "columns": {
     "record_id": "trim(record_id)",
     "customer_name": "initcap(trim(customer_name))",
@@ -27,10 +45,9 @@
   },
   "transformations": [
     {
-      "step_name": "step_1_cast_datatypes",
-      "type": "cast",
-      "column": "transaction_amount",
-      "target_type": "double"
+      "step_name": "step_1_filter_corrupt_records",
+      "type": "filter",
+      "condition": "record_id IS NOT NULL AND transaction_amount > 0"
     },
     {
       "step_name": "step_2_standardize_strings",
@@ -39,25 +56,43 @@
       "operation": "lowercase"
     },
     {
-      "step_name": "step_3_derive_business_indicators",
+      "step_name": "step_3_custom_column_mask",
+      "type": "custom_column",
+      "column": "contact_email",
+      "target_column": "masked_contact_email",
+      "module": "lakeforge.transformations.custom",
+      "function": "mask_email_column"
+    },
+    {
+      "step_name": "step_4_derive_business_indicators",
       "type": "derived_column",
       "name": "is_high_value",
       "expression": "CASE WHEN transaction_amount >= 1000.0 THEN true ELSE false END"
     },
     {
-      "step_name": "step_4_filter_corrupt_records",
-      "type": "filter",
-      "condition": "record_id IS NOT NULL AND transaction_amount > 0"
+      "step_name": "step_5_custom_dataframe_enrichment",
+      "type": "custom_dataframe",
+      "module": "lakeforge.transformations.custom",
+      "function": "enrich_sales_dataframe",
+      "params": {
+        "default_region": "GLOBAL"
+      }
     },
     {
-      "step_name": "step_5_drop_obsolete_columns",
+      "step_name": "step_6_cast_datatypes",
+      "type": "cast",
+      "column": "transaction_amount",
+      "target_type": "double"
+    },
+    {
+      "step_name": "step_7_drop_obsolete_columns",
       "type": "drop",
       "columns": [
         "temp_raw_data"
       ]
     },
     {
-      "step_name": "step_6_rename_column_headers",
+      "step_name": "step_8_rename_column_headers",
       "type": "rename",
       "mapping": {
         "event_timestamp": "transaction_timestamp",
@@ -65,7 +100,7 @@
       }
     },
     {
-      "step_name": "step_7_select_and_cast_projection",
+      "step_name": "step_9_select_and_cast_projection",
       "type": "select_and_cast",
       "columns": {
         "record_id": "string",
@@ -79,7 +114,7 @@
       }
     },
     {
-      "step_name": "step_8_deduplicate_latest_version",
+      "step_name": "step_10_drop_duplicates",
       "type": "deduplicate",
       "columns": [
         "record_id"
@@ -88,7 +123,7 @@
       "order_by": "transaction_timestamp"
     },
     {
-      "step_name": "step_9_enforce_target_schema",
+      "step_name": "step_11_enforce_target_schema",
       "type": "enforce_schema",
       "schema": "record_id STRING, tenant_id STRING, customer_name STRING, primary_email STRING, transaction_amount DOUBLE, region STRING, transaction_timestamp TIMESTAMP, is_high_value BOOLEAN"
     }

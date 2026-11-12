@@ -171,10 +171,11 @@ def validate_all_configs(
                 transformations = data.get("transformations")
                 columns = data.get("columns")
                 dedup = data.get("deduplication")
+                custom_fn = data.get("custom_function") or data.get("custom_module")
                 sql_file = data.get("sql_file")
                 query = data.get("query")
-                if transformations is None and columns is None and dedup is None and sql_file is None and query is None:
-                    errs.append("Configuration must specify 'sql_file', 'query', 'transformations', 'columns', or 'deduplication'")
+                if transformations is None and columns is None and dedup is None and custom_fn is None and sql_file is None and query is None:
+                    errs.append("Configuration must specify 'transformations', 'columns', 'deduplication', or 'custom_function'")
                 if sql_file:
                     resolved_sql = ConfigParser.resolve_sql_query(str(path), "transformations", data, environment)
                     if not resolved_sql:
@@ -199,10 +200,13 @@ def validate_all_configs(
                 data = json.loads(f.read_text(encoding="utf-8"))
                 if not data:
                     continue  # Skip empty/neutralized stub files
-                if not data.get("source_tables") and not data.get("sql_file") and not data.get("query"):
+                has_aggs = bool(data.get("aggregations"))
+                has_custom = bool(data.get("custom_function") or data.get("custom_module"))
+                has_query = bool(data.get("query") or data.get("sql_file"))
+                if not data.get("source_tables") and not has_custom and not has_query:
                     errs.append("Missing 'source_tables'")
-                if not data.get("aggregations") and not data.get("sql_file") and not data.get("query"):
-                    errs.append("Configuration must specify 'sql_file', 'query', or 'aggregations'")
+                if not has_aggs and not has_custom and not has_query:
+                    errs.append("Configuration must specify 'aggregations' or 'custom_function'")
                 if data.get("sql_file"):
                     resolved_sql = ConfigParser.resolve_sql_query(str(path), "aggregations", data, environment)
                     if not resolved_sql:

@@ -172,12 +172,13 @@ def test_get_silver_transformation_config(mock_config_dir):
     assert len(trans_config["transformations"]) == 1
 
 
-def test_get_silver_transformation_config_with_sql_file():
-    """Verify that Silver transformation resolves query from an external sql_file."""
+def test_get_silver_transformation_config_with_custom_function():
+    """Verify that Silver transformation loads custom Python module and function specifications."""
     trans_config = ConfigParser.get_silver_transformation_config("configs", "template_all_options", "dev")
-    assert "query" in trans_config
-    assert "SELECT" in trans_config["query"]
-    assert "FROM raw_sample_data" in trans_config["query"]
+    assert trans_config["custom_module"] == "lakeforge.transformations.custom"
+    assert trans_config["custom_function"] == "clean_customer_dataframe"
+    assert "transformations" in trans_config
+    assert len(trans_config["transformations"]) >= 5
 
 
 def test_get_gold_aggregation_config(mock_config_dir):
@@ -188,13 +189,13 @@ def test_get_gold_aggregation_config(mock_config_dir):
     assert agg_config["business_key"] == ["customer_id"]
 
 
-def test_get_gold_aggregation_config_with_sql_file():
-    """Verify that Gold aggregation resolves query from an external sql_file."""
+def test_get_gold_aggregation_config_with_custom_function():
+    """Verify that Gold aggregation loads custom Python mart function specifications."""
     agg_config = ConfigParser.get_gold_aggregation_config("configs", "template_all_options", "dev")
-    assert "query" in agg_config
-    assert "SELECT" in agg_config["query"]
-    assert "FROM orders o" in agg_config["query"]
-    assert "INNER JOIN customers c" in agg_config["query"]
+    assert agg_config["custom_module"] == "lakeforge.aggregations.custom"
+    assert agg_config["custom_function"] == "compute_customer_sales_mart"
+    assert "aggregations" in agg_config
+    assert "group_by" in agg_config
 
 def test_get_view_configs(mock_config_dir):
     view_configs = ConfigParser.get_view_configs(str(mock_config_dir), "dev")

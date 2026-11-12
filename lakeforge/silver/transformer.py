@@ -81,8 +81,18 @@ class SilverTransformer:
         """
         transformed_df = df
         
-        # Support full transformation config dict directly (with query/sql_file or columns/dedup)
+        # Support full transformation config dict directly (with custom_module, columns, dedup, query)
         if isinstance(configs, dict):
+            # 1. Custom DataFrame function at config level
+            custom_mod = configs.get("custom_module") or configs.get("module")
+            custom_fn = configs.get("custom_function") or configs.get("function")
+            if custom_mod and custom_fn:
+                params = configs.get("params", {})
+                transformed_df = DynamicRunner.load_and_execute(custom_mod, custom_fn, transformed_df, **params)
+                if schema:
+                    transformed_df = SilverTransformer.enforce_schema(transformed_df, schema)
+                return transformed_df
+
             if configs.get("query"):
                 spark_session = getattr(transformed_df, "sparkSession", None)
                 if spark_session:
@@ -94,11 +104,22 @@ class SilverTransformer:
                         transformed_df = SilverTransformer.enforce_schema(transformed_df, schema)
                     return transformed_df
 
-            # Apply columns expressions if present in dict
+            # 2. Custom column functions list if present
+            for c_spec in configs.get("custom_columns", []):
+                col_name = c_spec.get("column")
+                target_col = c_spec.get("target_column", col_name)
+                c_mod = c_spec.get("module")
+                c_fn = c_spec.get("function")
+                c_params = c_spec.get("params", {})
+                if c_mod and c_fn and col_name in transformed_df.columns:
+                    col_res = DynamicRunner.load_and_execute(c_mod, c_fn, col(col_name), **c_params)
+                    transformed_df = transformed_df.withColumn(target_col, col_res)
+
+            # 3. Apply column expressions if present in dict
             for col_name, expression in (configs.get("columns") or {}).items():
                 transformed_df = transformed_df.withColumn(col_name, expr(expression))
 
-            # Apply deduplication if present in dict
+            # 4. Apply deduplication if present in dict
             dedup = configs.get("deduplication")
             if dedup and dedup.get("key_columns"):
                 transformed_df = Deduplicator.deduplicate(
@@ -116,17 +137,33 @@ class SilverTransformer:
         for config in configs:
             trans_type = config.get("type")
             
-            if trans_type in ["custom_sql", "sql", "query"]:
+            if trans_type in ["custom_dataframe", "custom_function", "custom"]:
+                module = config.get("module")
+                func = config.get("function")
+                params = config.get("params", {})
+                transformed_df = DynamicRunner.load_and_execute(module, func, transformed_df, **params)
+
+            elif trans_type == "custom_column":
+                col_name = config.get("column")
+                target_col = config.get("target_column", col_name)
+                module = config.get("module")
+                func = config.get("function")
+                params = config.get("params", {})
+                if module and func and col_name in transformed_df.columns:
+                    col_res = DynamicRunner.load_and_execute(module, func, col(col_name), **params)
+                    transformed_df = transformed_df.withColumn(target_col, col_res)
+
+            elif trans_type in ["custom_sql", "sql", "query"]:
                 spark_session = getattr(transformed_df, "sparkSession", None)
                 sql_expr = config.get("query") or config.get("expression")
                 if spark_session and sql_expr:
                     transformed_df.createOrReplaceTempView("source_df")
                     transformed_df = spark_session.sql(sql_expr)
 
-            elif trans_type == "deduplicate":
+            elif trans_type in ["drop_duplicates", "deduplicate"]:
                 transformed_df = Deduplicator.deduplicate(
                     df=transformed_df,
-                    keys=config.get("columns", []),
+                    keys=config.get("columns", config.get("keys", [])),
                     strategy=config.get("strategy", "keep_latest"),
                     order_by=config.get("order_by", "_ingestion_timestamp")
                 )
@@ -142,33 +179,37 @@ class SilverTransformer:
                     elif op == "remove_non_numeric":
                         transformed_df = transformed_df.withColumn(col_name, regexp_replace(col(col_name), r"[^0-9]", ""))
                         
-            elif trans_type == "derived_column":
+            elif trans_type in ["add_derived_column", "derived_column"]:
                 col_name = config.get("name")
                 expression = config.get("expression")
                 transformed_df = transformed_df.withColumn(col_name, expr(expression))
                 
-            elif trans_type == "filter":
+            elif trans_type in ["filter_rows", "filter"]:
                 condition = config.get("condition")
                 transformed_df = transformed_df.filter(expr(condition))
                 
-            elif trans_type == "cast":
-                col_name = config.get("column")
-                target_type = config.get("target_type")
-                if col_name in transformed_df.columns:
-                    transformed_df = transformed_df.withColumn(col_name, col(col_name).cast(target_type))
+            elif trans_type in ["cast_columns", "cast"]:
+                if "columns" in config and isinstance(config["columns"], dict):
+                    for c_name, t_type in config["columns"].items():
+                        if c_name in transformed_df.columns:
+                            transformed_df = transformed_df.withColumn(c_name, col(c_name).cast(t_type))
+                elif "column" in config and "target_type" in config:
+                    col_name = config["column"]
+                    if col_name in transformed_df.columns:
+                        transformed_df = transformed_df.withColumn(col_name, col(col_name).cast(config["target_type"]))
                     
-            elif trans_type == "drop":
+            elif trans_type in ["drop_columns", "drop"]:
                 cols_to_drop = config.get("columns", [config.get("column")] if config.get("column") else [])
                 transformed_df = transformed_df.drop(*cols_to_drop)
                 
-            elif trans_type == "rename":
+            elif trans_type in ["rename_columns", "rename"]:
                 if "mapping" in config:
                     for old_name, new_name in config["mapping"].items():
                         transformed_df = transformed_df.withColumnRenamed(old_name, new_name)
                 elif "column" in config and "target_name" in config:
                     transformed_df = transformed_df.withColumnRenamed(config["column"], config["target_name"])
                     
-            elif trans_type == "select":
+            elif trans_type in ["select_columns", "select"]:
                 cols_to_select = config.get("columns", [])
                 if cols_to_select:
                     transformed_df = transformed_df.select(*cols_to_select)
@@ -179,7 +220,7 @@ class SilverTransformer:
                     select_exprs = [col(c).cast(t).alias(c) for c, t in col_mappings.items()]
                     transformed_df = transformed_df.select(*select_exprs)
                     
-            elif trans_type == "join":
+            elif trans_type in ["join_tables", "join"]:
                 right_table = config["right_table"]
                 join_keys = config["join_keys"]
                 join_type = config.get("join_type", "inner")

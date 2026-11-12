@@ -107,17 +107,19 @@ Validates incoming data before Silver layer promotion, quarantining invalid reco
 
 ## 3. 🔄 Silver Transformations Template (`configs/transformations/template_all_options.json`)
 
-Standardizes, cleanses, enriches, deduplicates, and manages SCD Type 1 & 2 history.
+Standardizes, cleanses, enriches, deduplicates, and manages SCD Type 1 & 2 history using generic built-in operations or custom Python/PySpark functions.
 
 > [!TIP]
-> **Recommended Approach (`sql_file`)**: Instead of writing complex transformation logic in JSON, you can define your SQL in a dedicated `.sql` file (under `configs/transformations/sql/<name>.sql`) and reference it with `"sql_file": "<name>.sql"`. This provides syntax highlighting, linting, and keeps JSON configs clean and minimal!
+> **Modular Python Functions**: Instead of massive inline SQL or config bloat, define custom column or DataFrame transformation logic in Python/PySpark files (e.g. `lakeforge/transformations/custom.py` or your own workspace module) and call them with `"custom_module"` and `"custom_function"`.
 
 | Option | Type | Description |
 | :--- | :--- | :--- |
 | `source_table` | `string` | Source Bronze table name. |
 | `target_table` | `string` | Target Silver table name. |
-| `sql_file` | `string` | **(Recommended)** Relative path to external `.sql` file containing transformation query. |
-| `query` | `string` | Inline SQL transformation statement (alternative to `sql_file`). |
+| `custom_module` | `string` | Python module containing custom DataFrame transformation function (e.g. `lakeforge.transformations.custom`). |
+| `custom_function`| `string` | Custom Python function name to execute on DataFrame (e.g. `clean_customer_dataframe`). |
+| `params` | `dict` | Keyword parameters passed directly to custom Python function. |
+| `custom_columns` | `list[dict]` | Column-level custom Python functions (`column`, `target_column`, `module`, `function`). |
 | `scd_type` | `int` | `1` (in-place overwrite) or `2` (historical tracking with `is_current`, `valid_from`, `valid_to`). |
 | `business_keys` | `list[str]` | Primary composite keys for deduplication and SCD merges. |
 | `timestamp_column` | `string` | Timestamp used for ordering historical record versions. |
@@ -126,38 +128,45 @@ Standardizes, cleanses, enriches, deduplicates, and manages SCD Type 1 & 2 histo
 | `columns` | `dict` | Column expression mappings (e.g. `{"id": "trim(id)}"`, `{"region": "upper(region)}"`) |
 | `transformations` | `list[dict]` | Ordered pipeline of transformation steps (see below). |
 
-### Supported Transformation Step Types
-- `cast`: Casts column to target type (`column`, `target_type`).
-- `standardize`: String standardization (`column`, `operation: "lowercase" | "uppercase" | "remove_non_numeric"`).
+### Supported Generic & Custom Transformation Step Types
+- `filter` / `filter_rows`: Filters rows matching Spark SQL expression (`condition`).
+- `drop` / `drop_columns`: Removes obsolete columns (`columns: [...]`).
+- `deduplicate` / `drop_duplicates`: Windowed deduplication (`columns`, `strategy`, `order_by`).
+- `join` / `join_tables`: Joins with lookup table (`right_table`, `join_keys`, `join_type: "inner" | "left" | "right" | "full"`).
+- `rename` / `rename_columns`: Renames columns (`mapping: {"old": "new"}`).
+- `cast` / `cast_columns`: Casts column(s) to target types (`column`, `target_type` or `columns` dict).
+- `standardize`: String standardization (`column`, `operation: "lowercase" | "uppercase" | "trim" | "initcap" | "remove_non_numeric"`).
 - `derived_column`: New calculated column via Spark SQL expression (`name`, `expression`).
-- `filter`: Filters rows matching Spark SQL expression (`condition`).
-- `drop`: Removes obsolete columns (`columns: [...]`).
-- `rename`: Renames columns (`mapping: {"old": "new"}`).
-- `select`: Column projection (`columns: [...]`).
+- `select` / `select_columns`: Column projection (`columns: [...]`).
 - `select_and_cast`: Projects and casts in a single operation (`columns: {"col": "type"}`).
-- `join`: Joins with lookup table (`right_table`, `join_keys`, `join_type: "inner" | "left" | "right" | "full"`).
-- `deduplicate`: Windowed deduplication (`columns`, `strategy`, `order_by`).
 - `enforce_schema`: Schema validation and conformance (`schema`).
-- `custom_function`: Invokes custom Python function (`module`, `function`).
+- `custom_column`: Custom Python function on a single column (`column`, `target_column`, `module`, `function`).
+- `custom_dataframe` / `custom_function`: Custom Python function on the entire DataFrame (`module`, `function`, `params`).
 
 ---
 
 ## 4. 🥇 Gold Aggregations Template (`configs/aggregations/template_all_options.json`)
 
-Computes dimensional marts, KPI rollups, and star/snowflake analytical tables.
+Computes dimensional marts, KPI rollups, and star/snowflake analytical tables using generic groupBy/join definitions or custom Python/PySpark aggregation functions.
 
 > [!TIP]
-> **Recommended Approach (`sql_file`)**: Point to a clean `.sql` query in `configs/aggregations/sql/<mart>.sql` using `"sql_file": "<mart>.sql"`. Aliases declared in `source_tables` are registered as temp views so your SQL query reads naturally (e.g. `FROM orders o INNER JOIN customers c ON ...`).
+> **Custom Python Aggregation Functions**: For advanced Gold marts, write your aggregation in a Python module (e.g. `lakeforge/aggregations/custom.py` or your own workspace file) and reference it with `"custom_module"` and `"custom_function"`. The function receives `source_dfs: Dict[str, DataFrame]` and returns the aggregated DataFrame!
 
 | Option | Type | Description |
 | :--- | :--- | :--- |
 | `target_table` | `string` | Target Gold table name. |
-| `sql_file` | `string` | **(Recommended)** Relative path to external `.sql` file containing aggregation query. |
-| `query` | `string` | Inline SQL aggregation statement (alternative to `sql_file`). |
 | `source_tables` | `dict` | Mapping of alias to Silver source table names. |
+| `custom_module` | `string` | Python module containing custom mart aggregation function (e.g. `lakeforge.aggregations.custom`). |
+| `custom_function`| `string` | Custom Python function name to execute (e.g. `compute_customer_sales_mart`). |
+| `params` | `dict` | Parameters passed to custom aggregation function. |
 | `merge_strategy` | `string` | Gold write mode: `upsert`, `overwrite`, `append`. |
 | `business_key` | `list[str]` | Composite business key for upserting into the Gold mart. |
-| `group_by` | `list[str]` | Multidimensional group-by dimensions (for JSON-based query assembly). |
+| `group_by` | `list[str]` | Multidimensional group-by dimensions. |
+| `aggregations` | `list[dict]` | Array of metric definitions (`name`, `expression`). |
+| `join_logic` | `string` | Custom SQL join syntax between aliased source tables. |
+| `filter_condition` | `string` | SQL `WHERE` clause applied prior to aggregation. |
+| `having_condition` | `string` | SQL `HAVING` clause applied post-aggregation. |
+| `order_by` | `list[str]` | Output sorting specifications. |
 | `aggregations` | `list[dict]` | Array of metric definitions (`name`, `expression`). |
 | `join_logic` | `string` | Custom SQL join syntax between aliased source tables. |
 | `filter_condition` | `string` | SQL `WHERE` clause applied prior to aggregation. |

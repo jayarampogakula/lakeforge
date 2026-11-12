@@ -4,8 +4,12 @@
     "customers": "{catalog}.{silver_schema}.customers_clean"
   },
   "target_table": "gold_customer_sales_mart",
-  "description": "Comprehensive reference template demonstrating LakeForge Gold aggregation and mart options.",
-  "sql_file": "customer_sales_mart.sql",
+  "description": "Comprehensive reference template demonstrating LakeForge Gold aggregation options: generic groupBy rules or custom Python/PySpark aggregation functions.",
+  "custom_module": "lakeforge.aggregations.custom",
+  "custom_function": "compute_customer_sales_mart",
+  "params": {
+    "min_order_count": 1
+  },
   "merge_strategy": "upsert",
   "business_key": [
     "customer_id",

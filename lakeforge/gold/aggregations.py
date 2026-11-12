@@ -31,7 +31,22 @@ class GoldAggregator:
         for alias, df in source_dfs.items():
             df.createOrReplaceTempView(alias)
             
-        # 1. Direct SQL Query / sql_file support
+        # 1. Custom Python Aggregation Function support
+        custom_mod = config.get("custom_module") or config.get("module")
+        custom_fn = config.get("custom_function") or config.get("function")
+        if custom_mod and custom_fn:
+            from lakeforge.utilities.dynamic_runner import DynamicRunner
+            params = config.get("params", {})
+            try:
+                return DynamicRunner.load_and_execute(custom_mod, custom_fn, source_dfs=source_dfs, spark=spark, **params)
+            except TypeError:
+                try:
+                    return DynamicRunner.load_and_execute(custom_mod, custom_fn, source_dfs, **params)
+                except TypeError:
+                    primary_df = list(source_dfs.values())[0] if source_dfs else None
+                    return DynamicRunner.load_and_execute(custom_mod, custom_fn, primary_df, **params)
+
+        # 2. Direct SQL Query / sql_file support
         if "query" in config and config["query"]:
             return spark.sql(config["query"])
 
