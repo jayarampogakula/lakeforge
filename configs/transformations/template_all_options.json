@@ -1,18 +1,20 @@
 {
   "source_table": "raw_sample_data",
   "target_table": "sample_data_clean",
-  "description": "Comprehensive reference template demonstrating all possible LakeForge Silver transformation options.",
-  "scd_type": 2,
+  "description": "Comprehensive reference template demonstrating LakeForge Silver transformation options.",
+  "sql_file": "sample_data_clean.sql",
+  "merge_strategy": "upsert",
   "business_keys": [
     "record_id"
   ],
+  "scd_type": 2,
   "timestamp_column": "updated_at",
-  "schema": "record_id STRING, tenant_id STRING, customer_name STRING, contact_email STRING, transaction_amount DOUBLE, region STRING, event_timestamp TIMESTAMP, is_high_value BOOLEAN",
+  "schema": "record_id STRING, tenant_id STRING, customer_name STRING, primary_email STRING, transaction_amount DOUBLE, region STRING, transaction_timestamp TIMESTAMP, is_high_value BOOLEAN",
   "deduplication": {
     "key_columns": [
       "record_id"
     ],
-    "order_column": "event_timestamp",
+    "order_column": "transaction_timestamp",
     "order_desc": true,
     "strategy": "keep_latest"
   },
@@ -51,8 +53,7 @@
       "step_name": "step_5_drop_obsolete_columns",
       "type": "drop",
       "columns": [
-        "temp_raw_data",
-        "legacy_tracking_code"
+        "temp_raw_data"
       ]
     },
     {

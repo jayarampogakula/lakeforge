@@ -171,8 +171,14 @@ def validate_all_configs(
                 transformations = data.get("transformations")
                 columns = data.get("columns")
                 dedup = data.get("deduplication")
-                if transformations is None and columns is None and dedup is None:
-                    errs.append("Configuration must specify 'transformations', 'columns', or 'deduplication'")
+                sql_file = data.get("sql_file")
+                query = data.get("query")
+                if transformations is None and columns is None and dedup is None and sql_file is None and query is None:
+                    errs.append("Configuration must specify 'sql_file', 'query', 'transformations', 'columns', or 'deduplication'")
+                if sql_file:
+                    resolved_sql = ConfigParser.resolve_sql_query(str(path), "transformations", data, environment)
+                    if not resolved_sql:
+                        errs.append(f"Referenced sql_file '{sql_file}' could not be resolved or is empty")
                 if transformations is not None and not isinstance(transformations, list):
                     errs.append("'transformations' must be a list")
                 elif transformations is not None:
@@ -193,10 +199,14 @@ def validate_all_configs(
                 data = json.loads(f.read_text(encoding="utf-8"))
                 if not data:
                     continue  # Skip empty/neutralized stub files
-                if not data.get("source_tables"):
+                if not data.get("source_tables") and not data.get("sql_file") and not data.get("query"):
                     errs.append("Missing 'source_tables'")
-                if not data.get("aggregations"):
-                    errs.append("Missing 'aggregations'")
+                if not data.get("aggregations") and not data.get("sql_file") and not data.get("query"):
+                    errs.append("Configuration must specify 'sql_file', 'query', or 'aggregations'")
+                if data.get("sql_file"):
+                    resolved_sql = ConfigParser.resolve_sql_query(str(path), "aggregations", data, environment)
+                    if not resolved_sql:
+                        errs.append(f"Referenced sql_file '{data.get('sql_file')}' could not be resolved or is empty")
                 record("aggregations", f.name, errs)
             except Exception as e:
                 record("aggregations", f.name, [f"Invalid JSON: {e}"])

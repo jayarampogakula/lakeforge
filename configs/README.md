@@ -109,17 +109,22 @@ Validates incoming data before Silver layer promotion, quarantining invalid reco
 
 Standardizes, cleanses, enriches, deduplicates, and manages SCD Type 1 & 2 history.
 
+> [!TIP]
+> **Recommended Approach (`sql_file`)**: Instead of writing complex transformation logic in JSON, you can define your SQL in a dedicated `.sql` file (under `configs/transformations/sql/<name>.sql`) and reference it with `"sql_file": "<name>.sql"`. This provides syntax highlighting, linting, and keeps JSON configs clean and minimal!
+
 | Option | Type | Description |
 | :--- | :--- | :--- |
 | `source_table` | `string` | Source Bronze table name. |
 | `target_table` | `string` | Target Silver table name. |
+| `sql_file` | `string` | **(Recommended)** Relative path to external `.sql` file containing transformation query. |
+| `query` | `string` | Inline SQL transformation statement (alternative to `sql_file`). |
 | `scd_type` | `int` | `1` (in-place overwrite) or `2` (historical tracking with `is_current`, `valid_from`, `valid_to`). |
 | `business_keys` | `list[str]` | Primary composite keys for deduplication and SCD merges. |
 | `timestamp_column` | `string` | Timestamp used for ordering historical record versions. |
 | `schema` | `string/dict` | Strict schema enforcement (DDL string or dict of column -> type). |
 | `deduplication` | `dict` | Deduplication settings (`key_columns`, `order_column`, `order_desc`, `strategy`). |
 | `columns` | `dict` | Column expression mappings (e.g. `{"id": "trim(id)}"`, `{"region": "upper(region)}"`) |
-| `transformations` | `list[dict]` | Ordered pipeline of transformation steps. |
+| `transformations` | `list[dict]` | Ordered pipeline of transformation steps (see below). |
 
 ### Supported Transformation Step Types
 - `cast`: Casts column to target type (`column`, `target_type`).
@@ -141,17 +146,22 @@ Standardizes, cleanses, enriches, deduplicates, and manages SCD Type 1 & 2 histo
 
 Computes dimensional marts, KPI rollups, and star/snowflake analytical tables.
 
+> [!TIP]
+> **Recommended Approach (`sql_file`)**: Point to a clean `.sql` query in `configs/aggregations/sql/<mart>.sql` using `"sql_file": "<mart>.sql"`. Aliases declared in `source_tables` are registered as temp views so your SQL query reads naturally (e.g. `FROM orders o INNER JOIN customers c ON ...`).
+
 | Option | Type | Description |
 | :--- | :--- | :--- |
-| `source_tables` | `dict` | Mapping of alias to Silver source table names. |
 | `target_table` | `string` | Target Gold table name. |
-| `group_by` | `list[str]` | Multidimensional group-by dimensions. |
+| `sql_file` | `string` | **(Recommended)** Relative path to external `.sql` file containing aggregation query. |
+| `query` | `string` | Inline SQL aggregation statement (alternative to `sql_file`). |
+| `source_tables` | `dict` | Mapping of alias to Silver source table names. |
+| `merge_strategy` | `string` | Gold write mode: `upsert`, `overwrite`, `append`. |
+| `business_key` | `list[str]` | Composite business key for upserting into the Gold mart. |
+| `group_by` | `list[str]` | Multidimensional group-by dimensions (for JSON-based query assembly). |
 | `aggregations` | `list[dict]` | Array of metric definitions (`name`, `expression`). |
 | `join_logic` | `string` | Custom SQL join syntax between aliased source tables. |
 | `filter_condition` | `string` | SQL `WHERE` clause applied prior to aggregation. |
 | `having_condition` | `string` | SQL `HAVING` clause applied post-aggregation. |
-| `merge_strategy` | `string` | Gold write mode: `upsert`, `overwrite`, `append`. |
-| `business_key` | `list[str]` | Composite business key for upserting into the Gold mart. |
 | `order_by` | `list[str]` | Output sorting specifications. |
 
 ---

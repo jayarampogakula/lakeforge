@@ -680,6 +680,72 @@ class ConfigParser:
         )
 
     @staticmethod
+    def resolve_sql_query(
+        config_dir_or_file: str,
+        category: str,
+        config_data: Dict[str, Any],
+        environment: str
+    ) -> Optional[str]:
+        """
+        Resolve SQL query for transformations or aggregations.
+        Supports:
+          1. Direct 'query' string in config.
+          2. 'sql_file' referencing an external .sql file in:
+             - configs/<category>/sql/<sql_file>
+             - configs/<category>/<sql_file>
+             - configs/sql/<category>/<sql_file>
+             - configs/sql/<sql_file>
+             - direct relative or absolute path
+        Tokens like {catalog}, {bronze_schema}, {silver_schema}, {gold_schema}, {source_table}
+        are dynamically substituted based on the environment configuration.
+        """
+        raw_sql = None
+        if "query" in config_data and isinstance(config_data["query"], str) and config_data["query"].strip():
+            raw_sql = config_data["query"].strip()
+        elif "sql_file" in config_data and isinstance(config_data["sql_file"], str) and config_data["sql_file"].strip():
+            sql_filename = config_data["sql_file"].strip()
+            path = Path(config_dir_or_file)
+            base_dir = path if path.is_dir() else path.parent
+
+            candidates = [
+                base_dir / category / "sql" / sql_filename,
+                base_dir / category / sql_filename,
+                base_dir / "sql" / category / sql_filename,
+                base_dir / "sql" / sql_filename,
+                base_dir / sql_filename,
+                Path(sql_filename)
+            ]
+            for cand in candidates:
+                if cand.is_file():
+                    with open(cand, 'r', encoding='utf-8') as f:
+                        raw_sql = f.read().strip()
+                    break
+
+        if not raw_sql:
+            return None
+
+        # Resolve tokens
+        try:
+            env_cfg = ConfigParser.get_environment_config(config_dir_or_file, environment)
+            token_map = {
+                "catalog": env_cfg.get("catalog", "lakehouse"),
+                "bronze_schema": env_cfg.get("bronze_schema", "bronze"),
+                "silver_schema": env_cfg.get("silver_schema", "silver"),
+                "gold_schema": env_cfg.get("gold_schema", "gold"),
+                "monitoring_schema": env_cfg.get("monitoring_schema", "monitoring"),
+                "source_table": config_data.get("source_table", "")
+            }
+            if isinstance(config_data.get("source_tables"), dict):
+                for alias, tbl in config_data["source_tables"].items():
+                    token_map[alias] = tbl.format(**token_map) if "{" in tbl else tbl
+            for k, v in token_map.items():
+                raw_sql = raw_sql.replace(f"{{{k}}}", str(v))
+        except Exception:
+            pass
+
+        return raw_sql
+
+    @staticmethod
     def get_silver_transformation_config(
         config_dir_or_file: str,
         target_table: str,
@@ -688,7 +754,7 @@ class ConfigParser:
     ) -> Dict[str, Any]:
         """
         Extract and construct a Silver transformations config for a table from configs.
-        Supports multi-tenant client_id scoping.
+        Supports multi-tenant client_id scoping and external SQL file resolution.
         """
         path = Path(config_dir_or_file)
         trans_data = None
@@ -714,6 +780,10 @@ class ConfigParser:
         if target_table in trans_data and isinstance(trans_data[target_table], dict):
             trans_data = trans_data[target_table]
             
+        sql_query = ConfigParser.resolve_sql_query(config_dir_or_file, "transformations", trans_data, environment)
+        if sql_query:
+            trans_data["query"] = sql_query
+
         return trans_data
 
     @staticmethod
@@ -725,7 +795,7 @@ class ConfigParser:
     ) -> Dict[str, Any]:
         """
         Extract and construct a Gold aggregation config for a table from configs.
-        Supports multi-tenant client_id scoping.
+        Supports multi-tenant client_id scoping and external SQL file resolution.
         """
         path = Path(config_dir_or_file)
         agg_data = None
@@ -751,6 +821,10 @@ class ConfigParser:
         if target_table in agg_data and isinstance(agg_data[target_table], dict):
             agg_data = agg_data[target_table]
             
+        sql_query = ConfigParser.resolve_sql_query(config_dir_or_file, "aggregations", agg_data, environment)
+        if sql_query:
+            agg_data["query"] = sql_query
+
         return agg_data
 
     @staticmethod

@@ -67,23 +67,63 @@ class SilverTransformer:
         return df
 
     @staticmethod
-    def transform(df: DataFrame, configs: List[Dict[str, Any]], schema: Any = None) -> DataFrame:
+    def transform(df: DataFrame, configs: Any, schema: Any = None) -> DataFrame:
         """
         Apply configuration-driven transformations to DataFrame.
         
         Args:
             df: Input DataFrame
-            configs: List of transformation config dictionaries
+            configs: List of transformation config dictionaries OR a single transformation config dict
+            schema: Optional schema definition to enforce
             
         Returns:
             Transformed DataFrame
         """
         transformed_df = df
         
+        # Support full transformation config dict directly (with query/sql_file or columns/dedup)
+        if isinstance(configs, dict):
+            if configs.get("query"):
+                spark_session = getattr(transformed_df, "sparkSession", None)
+                if spark_session:
+                    source_tbl = configs.get("source_table", "source_table")
+                    transformed_df.createOrReplaceTempView(source_tbl)
+                    transformed_df.createOrReplaceTempView("source_df")
+                    transformed_df = spark_session.sql(configs["query"])
+                    if schema:
+                        transformed_df = SilverTransformer.enforce_schema(transformed_df, schema)
+                    return transformed_df
+
+            # Apply columns expressions if present in dict
+            for col_name, expression in (configs.get("columns") or {}).items():
+                transformed_df = transformed_df.withColumn(col_name, expr(expression))
+
+            # Apply deduplication if present in dict
+            dedup = configs.get("deduplication")
+            if dedup and dedup.get("key_columns"):
+                transformed_df = Deduplicator.deduplicate(
+                    df=transformed_df,
+                    keys=dedup.get("key_columns", []),
+                    strategy=dedup.get("strategy", "keep_latest"),
+                    order_by=dedup.get("order_column", "_ingestion_timestamp")
+                )
+
+            configs = configs.get("transformations", [])
+
+        if not isinstance(configs, list):
+            configs = []
+        
         for config in configs:
             trans_type = config.get("type")
             
-            if trans_type == "deduplicate":
+            if trans_type in ["custom_sql", "sql", "query"]:
+                spark_session = getattr(transformed_df, "sparkSession", None)
+                sql_expr = config.get("query") or config.get("expression")
+                if spark_session and sql_expr:
+                    transformed_df.createOrReplaceTempView("source_df")
+                    transformed_df = spark_session.sql(sql_expr)
+
+            elif trans_type == "deduplicate":
                 transformed_df = Deduplicator.deduplicate(
                     df=transformed_df,
                     keys=config.get("columns", []),

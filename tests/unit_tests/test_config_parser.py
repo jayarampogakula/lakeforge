@@ -171,12 +171,30 @@ def test_get_silver_transformation_config(mock_config_dir):
     assert trans_config["source_table"] == "customers"
     assert len(trans_config["transformations"]) == 1
 
+
+def test_get_silver_transformation_config_with_sql_file():
+    """Verify that Silver transformation resolves query from an external sql_file."""
+    trans_config = ConfigParser.get_silver_transformation_config("configs", "template_all_options", "dev")
+    assert "query" in trans_config
+    assert "SELECT" in trans_config["query"]
+    assert "FROM raw_sample_data" in trans_config["query"]
+
+
 def test_get_gold_aggregation_config(mock_config_dir):
     agg_config = ConfigParser.get_gold_aggregation_config(str(mock_config_dir), "customer_summary", "dev")
     assert "customers" in agg_config["source_tables"]
     assert agg_config["group_by"] == ["customer_id"]
     assert agg_config["merge_strategy"] == "upsert"
     assert agg_config["business_key"] == ["customer_id"]
+
+
+def test_get_gold_aggregation_config_with_sql_file():
+    """Verify that Gold aggregation resolves query from an external sql_file."""
+    agg_config = ConfigParser.get_gold_aggregation_config("configs", "template_all_options", "dev")
+    assert "query" in agg_config
+    assert "SELECT" in agg_config["query"]
+    assert "FROM orders o" in agg_config["query"]
+    assert "INNER JOIN customers c" in agg_config["query"]
 
 def test_get_view_configs(mock_config_dir):
     view_configs = ConfigParser.get_view_configs(str(mock_config_dir), "dev")

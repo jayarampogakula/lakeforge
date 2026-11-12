@@ -31,6 +31,10 @@ class GoldAggregator:
         for alias, df in source_dfs.items():
             df.createOrReplaceTempView(alias)
             
+        # 1. Direct SQL Query / sql_file support
+        if "query" in config and config["query"]:
+            return spark.sql(config["query"])
+
         # Build SELECT clause
         select_parts = []
         group_cols = config.get("group_by", [])
