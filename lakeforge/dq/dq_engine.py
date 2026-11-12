@@ -141,7 +141,9 @@ class DQEngine:
         column: str,
         min_value: Optional[float] = None,
         max_value: Optional[float] = None,
-        threshold: float = 1.0
+        threshold: float = 1.0,
+        min_val: Optional[float] = None,
+        max_val: Optional[float] = None
     ) -> Dict[str, Any]:
         """
         Validate numeric column is within specified range.
@@ -149,13 +151,18 @@ class DQEngine:
         Args:
             df: DataFrame to validate
             column: Column name to check
-            min_value: Minimum allowed value
-            max_value: Maximum allowed value
+            min_value: Minimum allowed value (alias: min_val)
+            max_value: Maximum allowed value (alias: max_val)
             threshold: Minimum in-range percentage required (0-1)
             
         Returns:
             Validation result dictionary
         """
+        if min_value is None and min_val is not None:
+            min_value = min_val
+        if max_value is None and max_val is not None:
+            max_value = max_val
+
         total_count = df.count()
         
         # Build range condition
@@ -181,7 +188,8 @@ class DQEngine:
             "in_range_percentage": in_range_percentage,
             "threshold": threshold,
             "passed": passed,
-            "failed_records": failed_count if not passed else 0
+            "failed_records": failed_count if not passed else 0,
+            "out_of_range_count": failed_count
         }
         
     def run_datatype_check(

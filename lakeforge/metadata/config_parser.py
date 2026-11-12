@@ -1021,7 +1021,7 @@ class ConfigParser:
             errors.append("schema is required")
         if config.definition_type not in ["table", "query"]:
             errors.append(f"Invalid definition_type: {config.definition_type}")
-        if config.view_type not in ["persistent", "temp"]:
+        if config.view_type not in ["persistent", "temp", "temporary"]:
             errors.append(f"Invalid view_type: {config.view_type}")
         if config.definition_type == "table" and not config.source_table:
             errors.append("source_table is required when definition_type is 'table'")

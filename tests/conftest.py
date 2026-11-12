@@ -4,7 +4,11 @@ from unittest.mock import MagicMock
 # Try importing real pyspark before setting up mocks
 try:
     import pyspark
-    sys.has_real_pyspark = True
+    # Ensure it's not a mock
+    if hasattr(pyspark, "__file__") and not isinstance(pyspark, MagicMock):
+        sys.has_real_pyspark = True
+    else:
+        sys.has_real_pyspark = False
 except ImportError:
     sys.has_real_pyspark = False
 
@@ -34,3 +38,43 @@ if not sys.has_real_pyspark:
     sys.modules['delta'] = MagicMock()
     sys.modules['delta.tables'] = MagicMock()
     sys.modules['pandas'] = MagicMock()
+
+
+import pytest
+
+@pytest.fixture(scope="session")
+def spark():
+    """
+    Session-scoped PySpark fixture with Delta Lake support.
+    Shared across all unit and integration tests to avoid multiple SparkSession restarts.
+    """
+    has_real_pyspark = getattr(sys, "has_real_pyspark", True)
+    if not has_real_pyspark:
+        pytest.skip("PySpark not available in this environment")
+
+    try:
+        from pyspark.sql import SparkSession
+    except ImportError:
+        pytest.skip("PySpark is not installed")
+
+    builder = SparkSession.builder \
+        .master("local[1]") \
+        .appName("LakeForge-TestSuite") \
+        .config("spark.sql.shuffle.partitions", "1") \
+        .config("spark.default.parallelism", "1") \
+        .config("spark.ui.enabled", "false") \
+        .config("spark.sql.extensions", "io.delta.sql.DeltaSparkSessionExtension") \
+        .config("spark.sql.catalog.spark_catalog", "org.apache.spark.sql.delta.catalog.DeltaCatalog") \
+        .config("spark.sql.warehouse.dir", "target/spark-warehouse")
+
+    try:
+        from delta import configure_spark_with_delta_pip
+        session = configure_spark_with_delta_pip(builder).getOrCreate()
+    except Exception:
+        session = builder.getOrCreate()
+
+    yield session
+    try:
+        session.stop()
+    except Exception:
+        pass

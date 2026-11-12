@@ -6,6 +6,7 @@ Bronze Ingestion -> Data Quality & Quarantine -> Silver Cleansing & Deduplicatio
 import sys
 import pytest
 from datetime import datetime
+from pathlib import Path
 
 has_real_pyspark = getattr(sys, "has_real_pyspark", True)
 pytestmark = pytest.mark.skipif(not has_real_pyspark, reason="Requires real PySpark")
@@ -95,7 +96,7 @@ def test_end_to_end_medallion_pipeline(spark, tmp_path):
 
     # Range check on amount >= 0.01
     res_range = dq_engine.run_range_check(df_bronze, column="amount", min_val=0.01)
-    assert res_range["out_of_range_count"] == 1
+    assert res_range.get("out_of_range_count", res_range.get("failed_records")) == 1
 
     # Filter clean records for Silver
     df_valid = df_bronze.filter("customer_id IS NOT NULL AND amount > 0")
@@ -114,7 +115,14 @@ def test_end_to_end_medallion_pipeline(spark, tmp_path):
     assert df_silver.count() == 2
 
     # Save to Silver Table
-    df_silver.write.format("delta").mode("overwrite").saveAsTable(f"default.{silver_table}")
+    try:
+        df_silver.write.format("delta").mode("overwrite").saveAsTable(f"default.{silver_table}")
+    except Exception as e:
+        if "EXTERNAL_METADATA_UNSUPPORTED" in str(e):
+            spark.sql(f"CREATE TABLE IF NOT EXISTS default.{silver_table} USING delta")
+            df_silver.write.format("delta").mode("overwrite").insertInto(f"default.{silver_table}")
+        else:
+            raise
     assert spark.catalog.tableExists(f"default.{silver_table}")
 
     # -------------------------------------------------------------
@@ -130,7 +138,14 @@ def test_end_to_end_medallion_pipeline(spark, tmp_path):
     }
     df_gold = GoldAggregator.aggregate(spark, {"orders": df_silver}, agg_config)
     assert df_gold.count() == 2
-    df_gold.write.format("delta").mode("overwrite").saveAsTable(f"default.{gold_table}")
+    try:
+        df_gold.write.format("delta").mode("overwrite").saveAsTable(f"default.{gold_table}")
+    except Exception as e:
+        if "EXTERNAL_METADATA_UNSUPPORTED" in str(e):
+            spark.sql(f"CREATE TABLE IF NOT EXISTS default.{gold_table} USING delta")
+            df_gold.write.format("delta").mode("overwrite").insertInto(f"default.{gold_table}")
+        else:
+            raise
 
     # -------------------------------------------------------------
     # 5. VIEWS: Analytical Reporting View
@@ -140,7 +155,7 @@ def test_end_to_end_medallion_pipeline(spark, tmp_path):
         view_name=f"vw_top_spenders_{test_run_id}",
         catalog="",
         schema="default",
-        view_type="temporary",
+        view_type="temp",
         definition_type="query",
         query=f"SELECT customer_id, total_spend FROM default.{gold_table} WHERE total_spend >= 100.0"
     )

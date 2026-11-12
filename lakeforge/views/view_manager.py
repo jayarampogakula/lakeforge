@@ -34,7 +34,7 @@ class ViewManager:
         is_uc = False
         
         # 1. Determine DDL header
-        if config.view_type == "temp":
+        if config.view_type in ["temp", "temporary"]:
             ddl_prefix = f"CREATE OR REPLACE TEMPORARY VIEW {config.view_name}"
         else:
             # Ensure catalog and schema exist if Unity Catalog multi-part namespace is supported
@@ -57,7 +57,7 @@ class ViewManager:
         if config.definition_type == "table":
             source = config.source_table
             if "." not in source:
-                if config.view_type == "temp":
+                if config.view_type in ["temp", "temporary"]:
                     # For temp views, source table resolves directly in the current session
                     source = config.source_table
                 elif is_uc:
