@@ -51,3 +51,23 @@ def test_global_fallback_when_no_client():
     view_names = [v.view_name for v in global_views]
     assert "v_active_customers" in view_names
     assert "v_high_value_transactions" in view_names
+
+
+def test_client_alpha_custom_transformation_and_aggregation_modules():
+    """Verify tenant-specific custom functions can be loaded dynamically."""
+    from lakeforge.utilities.dynamic_runner import DynamicRunner
+    import lakeforge.transformations.client_alpha.custom as client_trans
+    import lakeforge.aggregations.client_alpha.custom as client_agg
+
+    # Verify transformation functions exist
+    assert hasattr(client_trans, "clean_client_alpha_sales_id")
+    assert hasattr(client_trans, "mask_client_alpha_pii")
+    assert hasattr(client_trans, "transform_client_alpha_sales")
+
+    # Verify aggregation functions exist
+    assert hasattr(client_agg, "compute_client_alpha_sales_summary")
+    assert hasattr(client_agg, "compute_client_alpha_regional_mart")
+
+    # Verify DynamicRunner loads them cleanly
+    func = getattr(client_trans, "clean_client_alpha_sales_id")
+    assert callable(func)

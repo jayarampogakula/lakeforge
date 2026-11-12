@@ -784,6 +784,20 @@ class ConfigParser:
         if sql_query:
             trans_data["query"] = sql_query
 
+        # Resolve {client_id} tokens in custom modules if client_id is set
+        effective_client = client_id or trans_data.get("client_id")
+        if effective_client:
+            trans_data["client_id"] = effective_client
+            for mod_key in ["custom_module", "module"]:
+                if mod_key in trans_data and isinstance(trans_data[mod_key], str):
+                    trans_data[mod_key] = trans_data[mod_key].replace("{client_id}", effective_client)
+            for c_spec in trans_data.get("custom_columns", []):
+                if isinstance(c_spec, dict) and "module" in c_spec and isinstance(c_spec["module"], str):
+                    c_spec["module"] = c_spec["module"].replace("{client_id}", effective_client)
+            for step in trans_data.get("transformations", []):
+                if isinstance(step, dict) and "module" in step and isinstance(step["module"], str):
+                    step["module"] = step["module"].replace("{client_id}", effective_client)
+
         return trans_data
 
     @staticmethod
@@ -824,6 +838,14 @@ class ConfigParser:
         sql_query = ConfigParser.resolve_sql_query(config_dir_or_file, "aggregations", agg_data, environment)
         if sql_query:
             agg_data["query"] = sql_query
+
+        # Resolve {client_id} tokens in custom modules if client_id is set
+        effective_client = client_id or agg_data.get("client_id")
+        if effective_client:
+            agg_data["client_id"] = effective_client
+            for mod_key in ["custom_module", "module"]:
+                if mod_key in agg_data and isinstance(agg_data[mod_key], str):
+                    agg_data[mod_key] = agg_data[mod_key].replace("{client_id}", effective_client)
 
         return agg_data
 
